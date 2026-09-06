@@ -33,10 +33,12 @@ import { useToast } from '../../ui/toast.jsx'
 
 /** Why the ordered quantity is not exactly what the customer typed. */
 const ROUNDING_NOTE = {
-  'li-1': 'Rounded up to 400 ft — 40 full 10 ft sticks. PVC conduit is sold by the stick, never cut.',
-  'li-3': 'Rounded up to 2,500 ft — one full reel. #10 THHN is not cut below reel quantity.',
+  'li-1':
+    'Ordering 400 ft — 40 full 10 ft sticks. PVC conduit is sold by the stick, so any odd length rounds up to the next 10 ft.',
+  'li-3':
+    'Ordering 2,500 ft — one full reel. #10 THHN is not cut below reel quantity, so the length rounds up to the next full reel.',
 }
-const ROUNDING_FALLBACK = 'Rounded up to the next full sellable multiple for this item.'
+const ROUNDING_FALLBACK = 'Quantity rounded up to the next full sellable multiple for this item.'
 
 /* Column widths shared by the header strip and every candidate row. */
 const COL_UOM = 'w-12'
@@ -78,7 +80,9 @@ function CandidateRow({ li, cand, selected, qty, onQty, onSelect }) {
     <div
       className={cx(
         'group relative flex cursor-pointer items-stretch border-b border-ink-100 transition-colors last:border-0',
-        selected ? 'bg-brand-50 ring-1 ring-brand-200 ring-inset' : 'hover:bg-ink-50',
+        selected
+          ? 'bg-brand-50 ring-1 ring-brand-200 ring-inset hover:bg-brand-100/60'
+          : 'hover:bg-ink-50',
       )}
     >
       <button
@@ -140,7 +144,11 @@ function CandidateRow({ li, cand, selected, qty, onQty, onSelect }) {
         >
           {li.roundedUp && (
             <Tooltip side="top" content={ROUNDING_NOTE[li.id] ?? ROUNDING_FALLBACK}>
-              <ArrowUp className="size-3.5 cursor-help text-brand-600" strokeWidth={2.5} />
+              <ArrowUp
+                className="size-3.5 cursor-help text-brand-600"
+                strokeWidth={2.5}
+                aria-hidden="true"
+              />
             </Tooltip>
           )}
           <input
@@ -306,9 +314,12 @@ export default function LineItemBlock({
             />
           ))}
           {rows.length === 0 && (
-            <p className="border-b border-ink-100 px-3 py-4 text-center text-[12px] text-ink-500">
+            <p className="px-3 py-4 text-center text-[12px] text-ink-500">
               No candidate on this line matches “{query.trim()}”. Clear the box to see all{' '}
-              {candidates.length} matches.
+              {candidates.length} matches
+              {!expanded && extra.length > 0
+                ? `, or show ${extra.length} more from the catalog.`
+                : '.'}
             </p>
           )}
         </div>

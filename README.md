@@ -10,6 +10,12 @@ clickable: hover a status pill, expand the delivery section, select a candidate 
 from the toast, watch the Create Quote button flip from disabled to enabled as the last
 line gets matched.
 
+**Live demo → https://sammyq724.github.io/MVP_SUPPLAI/**
+
+Deployed from this branch by [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
+on every push. Because routing is hash-based, every state below is directly linkable —
+e.g. [`#/order?state=resolved`](https://sammyq724.github.io/MVP_SUPPLAI/#/order?state=resolved).
+
 ## Run it
 
 ```bash
