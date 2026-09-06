@@ -15,6 +15,16 @@ line gets matched.
 Deployed from this branch by [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)
 on every push. Because routing is hash-based, every state below is directly linkable —
 e.g. [`#/order?state=resolved`](https://sammyq724.github.io/MVP_SUPPLAI/#/order?state=resolved).
+The workflow ends by fetching the published page and failing if it isn't serving the
+built bundle, so a green run means the link genuinely works.
+
+> **One setting worth changing:** this repo's Pages **Source** is still *Deploy from a
+> branch*, so every push also runs a Jekyll build of the repo root. That publishes the
+> unbuilt Vite template — a page whose only script tag is `/src/main.jsx`, which renders
+> blank — to the same URL our artifact goes to, last writer wins. The workflow currently
+> works around it by waiting for that build to finish before deploying. Setting
+> **Settings → Pages → Source → GitHub Actions** removes the race entirely; the workflow
+> tries to do this itself on every run but the Actions token lacks the admin scope for it.
 
 ## Run it
 
