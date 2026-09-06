@@ -77,7 +77,7 @@ function CandidateRow({ li, cand, selected, qty, onQty, onSelect }) {
   return (
     <div
       className={cx(
-        'group relative flex items-stretch border-b border-ink-100 transition-colors last:border-0',
+        'group relative flex cursor-pointer items-stretch border-b border-ink-100 transition-colors last:border-0',
         selected ? 'bg-brand-50 ring-1 ring-brand-200 ring-inset' : 'hover:bg-ink-50',
       )}
     >
@@ -130,8 +130,14 @@ function CandidateRow({ li, cand, selected, qty, onQty, onSelect }) {
       </button>
 
       {/* Numeric group — kept outside the row button so the qty field is editable. */}
-      <div className="flex shrink-0 items-center gap-2.5 py-2 pr-3 pl-2.5">
-        <div className={cx('flex items-center justify-end gap-1', COL_QTY)}>
+      <div
+        onClick={() => onSelect(li.id, cand.id)}
+        className="flex shrink-0 items-center gap-2.5 py-2 pr-3 pl-2.5"
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className={cx('flex cursor-default items-center justify-end gap-1', COL_QTY)}
+        >
           {li.roundedUp && (
             <Tooltip side="top" content={ROUNDING_NOTE[li.id] ?? ROUNDING_FALLBACK}>
               <ArrowUp className="size-3.5 cursor-help text-brand-600" strokeWidth={2.5} />
@@ -146,7 +152,7 @@ function CandidateRow({ li, cand, selected, qty, onQty, onSelect }) {
             onClick={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onChange={(e) => onQty(li.id, cand.id, e.target.value)}
-            className="nums h-7 w-20 rounded-lg border border-ink-300 bg-white px-2 text-right text-[12px] text-ink-800 shadow-[0_1px_1px_0_rgb(15_23_42_/_0.03)] transition-colors [appearance:textfield] hover:border-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
+            className="nums h-7 w-20 cursor-text rounded-lg border border-ink-300 bg-white px-2 text-right text-[12px] text-ink-800 shadow-[0_1px_1px_0_rgb(15_23_42_/_0.03)] transition-colors [appearance:textfield] hover:border-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
           />
         </div>
         <span className={cx('nums shrink-0 text-right text-[12px] text-ink-600', COL_UNIT)}>

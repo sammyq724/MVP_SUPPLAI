@@ -6,6 +6,7 @@
  */
 import { chromium } from 'playwright'
 import { mkdir } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 
 const BASE = process.argv[2] ?? 'http://127.0.0.1:4173'
 const OUT = 'mockups'
@@ -30,7 +31,12 @@ const SHOTS = [
 ]
 
 await mkdir(OUT, { recursive: true })
-const browser = await chromium.launch()
+// Use the image's pre-installed Chromium when the pinned Playwright build
+// differs from what's on disk, rather than downloading a second copy.
+const PREINSTALLED = '/opt/pw-browsers/chromium-1194/chrome-linux/chrome'
+const browser = await chromium.launch(
+  existsSync(PREINSTALLED) ? { executablePath: PREINSTALLED } : {},
+)
 const page = await browser.newPage({
   viewport: { width: 1680, height: 1050 },
   deviceScaleFactor: 2,

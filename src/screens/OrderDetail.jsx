@@ -37,6 +37,7 @@ export default function OrderDetail({ params, navigate }) {
   const [recording, setRecording] = useState(false)
   const [search, setSearch] = useState('')
   const [highlightOutstanding, setHighlightOutstanding] = useState(false)
+  const [deliveryOpen, setDeliveryOpen] = useState(params.delivery === '1')
 
   const candidatesFor = useCallback(
     (li) =>
@@ -115,8 +116,17 @@ export default function OrderDetail({ params, navigate }) {
           <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-40">
             <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-3">
               <QuoteToPanel />
-              <ShipToPanel defaultDeliveryOpen={params.delivery === '1'} />
-              <OrderMetaPanel />
+              {/* Ship To takes the full row while the delivery form is open — a
+                  two-column address form is unreadable in a one-third column. */}
+              <div className={deliveryOpen ? 'xl:order-last xl:col-span-3' : undefined}>
+                <ShipToPanel
+                  defaultDeliveryOpen={params.delivery === '1'}
+                  onDeliveryToggle={setDeliveryOpen}
+                />
+              </div>
+              <div className={deliveryOpen ? 'xl:col-span-2' : undefined}>
+                <OrderMetaPanel />
+              </div>
             </div>
 
             <ProductsSection

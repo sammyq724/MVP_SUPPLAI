@@ -6,8 +6,6 @@ import {
   Truck,
   Info,
   ChevronRight,
-  Warehouse,
-  Building2,
 } from 'lucide-react'
 import { Panel, Chip, Field, Select, TextInput, HelpTip, cx } from '../../ui/primitives.jsx'
 import { shipTo, branches, shipViaOptions, deliveryDetail, HELP } from '../../data/order.js'
@@ -51,15 +49,32 @@ function AddSlot({ label, onClick }) {
   )
 }
 
-export default function ShipToPanel({ defaultDeliveryOpen = false }) {
+/** "Houston — North (HOU-01)" → ["Houston — North", "HOU-01"] */
+function splitBranch(label) {
+  const m = /^(.*?)\s*\(([^)]+)\)\s*$/.exec(label)
+  return m ? [m[1], m[2]] : [label, null]
+}
+
+export default function ShipToPanel({ defaultDeliveryOpen = false, onDeliveryToggle }) {
   const toast = useToast()
 
   const [hasAddress, setHasAddress] = useState(true)
   const [hasPriceBranch, setHasPriceBranch] = useState(true)
   const [hasShipBranch, setHasShipBranch] = useState(true)
   const [shipVia, setShipVia] = useState('')
-  const [open, setOpen] = useState(defaultDeliveryOpen)
+  const [open, setOpenState] = useState(defaultDeliveryOpen)
   const [d, setD] = useState(deliveryDetail)
+
+  // The container widens this panel to the full grid while the delivery form is
+  // open — a two-column address form does not fit in a one-third column.
+  const setOpen = (next) => {
+    const v = typeof next === 'function' ? next(open) : next
+    setOpenState(v)
+    onDeliveryToggle?.(v)
+  }
+
+  const [priceName, priceCode] = splitBranch(branches.price)
+  const [shipName, shipCode] = splitBranch(branches.ship)
 
   const set = (key) => (e) => setD((prev) => ({ ...prev, [key]: e.target.value }))
 
@@ -108,32 +123,36 @@ export default function ShipToPanel({ defaultDeliveryOpen = false }) {
         <Field label="Price Branch" help={HELP.priceBranch}>
           {hasPriceBranch ? (
             <Chip
-              icon={Building2}
               onRemove={() => {
                 setHasPriceBranch(false)
                 toast?.warning('Price branch cleared', { onUndo: () => setHasPriceBranch(true) })
               }}
             >
-              {branches.price}
+              {priceName}
             </Chip>
           ) : (
             <AddSlot label="Add branch" onClick={() => setHasPriceBranch(true)} />
+          )}
+          {hasPriceBranch && priceCode && (
+            <p className="nums mt-1 text-[10px] tracking-[0.04em] text-ink-400">{priceCode}</p>
           )}
         </Field>
 
         <Field label="Ship Branch" help={HELP.shipBranch}>
           {hasShipBranch ? (
             <Chip
-              icon={Warehouse}
               onRemove={() => {
                 setHasShipBranch(false)
                 toast?.warning('Ship branch cleared', { onUndo: () => setHasShipBranch(true) })
               }}
             >
-              {branches.ship}
+              {shipName}
             </Chip>
           ) : (
             <AddSlot label="Add branch" onClick={() => setHasShipBranch(true)} />
+          )}
+          {hasShipBranch && shipCode && (
+            <p className="nums mt-1 text-[10px] tracking-[0.04em] text-ink-400">{shipCode}</p>
           )}
         </Field>
       </div>

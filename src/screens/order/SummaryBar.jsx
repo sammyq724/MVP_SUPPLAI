@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { SplitButton, Tooltip, HelpTip, money } from '../../ui/primitives.jsx'
 import { useToast } from '../../ui/toast.jsx'
-import { branches, order } from '../../data/order.js'
+import { branches, contact, order } from '../../data/order.js'
 
 /**
  * Screen 3 — the sticky action bar pinned to the bottom of the order builder.
@@ -63,20 +63,16 @@ export default function SummaryBar({ total, outstanding, defaultMenuOpen = false
   const onCreate = (opt) => {
     const label = opt?.label ?? CREATE_OPTIONS[0].label
     if (label === 'Create order') {
-      toast?.success('Order released', {
-        description: `Committed to ${branches.ship} · pick ticket queued`,
-      })
+      toast?.success('Order 118342 released', { description: `Committed at ${branches.ship}` })
     } else if (label === 'Create ship when available order') {
-      toast?.success('Backorder created', {
-        description: `Lines release from ${branches.ship} as stock lands`,
+      toast?.success('Ship-when-available order created', {
+        description: `Lines release from ${branches.ship}`,
       })
     } else if (label === 'Create will call order') {
-      toast?.success('Will call order created', {
-        description: `Hold at ${branches.price} counter for pickup`,
-      })
+      toast?.success('Will call order created', { description: `Ready at ${branches.price}` })
     } else {
       toast?.success('Quote Q-118342 created', {
-        description: `${money(total)} · emailed to the requester, good for 30 days`,
+        description: `${money(total)} · sent to ${contact.name}`,
       })
     }
   }
@@ -125,7 +121,7 @@ export default function SummaryBar({ total, outstanding, defaultMenuOpen = false
         )}
 
         <div className="flex items-center gap-4">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-baseline gap-2.5">
               <span className="inline-flex items-center gap-1 text-[11px] font-semibold tracking-[0.04em] text-ink-500 uppercase">
                 Total
@@ -138,7 +134,7 @@ export default function SummaryBar({ total, outstanding, defaultMenuOpen = false
                 type="button"
                 onClick={() =>
                   toast?.info('Line pricing unlocked', {
-                    description: 'Unit price and discount are editable on every line',
+                    description: 'Unit price and discount now editable',
                   })
                 }
                 className="shrink-0 text-[12px] font-medium text-brand-600 transition-colors hover:text-brand-700 hover:underline"
@@ -152,8 +148,10 @@ export default function SummaryBar({ total, outstanding, defaultMenuOpen = false
             </p>
           </div>
 
-          <div className="ml-auto flex items-center gap-2">
-            <Tooltip content={blocked ? BLOCKED_TIP : null} side="top" width="w-56">
+          {/* One tooltip over the pair: both are gated by the same condition, and
+              centering it on the group keeps it inside the pane's right edge. */}
+          <Tooltip content={blocked ? BLOCKED_TIP : null} side="top" width="w-56">
+            <span className="ml-auto flex items-center gap-2">
               <SplitButton
                 label="Create Quote"
                 variant="primary"
@@ -162,9 +160,6 @@ export default function SummaryBar({ total, outstanding, defaultMenuOpen = false
                 disabled={blocked}
                 defaultOpen={defaultMenuOpen}
               />
-            </Tooltip>
-
-            <Tooltip content={blocked ? BLOCKED_TIP : null} side="top" width="w-56">
               <SplitButton
                 label="Export"
                 variant="secondary"
@@ -172,8 +167,8 @@ export default function SummaryBar({ total, outstanding, defaultMenuOpen = false
                 onSelect={onExport}
                 disabled={blocked}
               />
-            </Tooltip>
-          </div>
+            </span>
+          </Tooltip>
         </div>
       </div>
     </div>

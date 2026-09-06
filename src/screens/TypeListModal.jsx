@@ -115,7 +115,9 @@ export default function TypeListModal({
               Order
               <span className="ml-0.5 text-red-500">*</span>
             </label>
-            <HelpTip content={HELP_COPY} />
+            {/* Opens to the right: the label sits at the panel's left gutter, so a
+                bottom-centred w-60 tooltip would hang off the modal card. */}
+            <HelpTip content={HELP_COPY} side="right" />
           </div>
 
           <textarea

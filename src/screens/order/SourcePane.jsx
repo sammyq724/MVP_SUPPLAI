@@ -37,7 +37,9 @@ export default function SourcePane({ initialTab = 'email' }) {
     toast?.info('Downloading attachment', { description: `${file.name} · ${file.size}` })
 
   return (
-    <section className="flex w-[46%] min-w-[26rem] shrink-0 flex-col border-r border-ink-200 bg-white">
+    // 40%, not half: the order builder on the right is the denser pane and needs
+    // the room — at 46% its chips and candidate descriptions truncate.
+    <section className="flex w-[40%] min-w-[23rem] shrink-0 flex-col border-r border-ink-200 bg-white">
       <div
         role="tablist"
         aria-label="Request source"
@@ -199,6 +201,14 @@ function DocumentTab({ pages, onDownload }) {
         <button
           type="button"
           onDoubleClick={() => setPct(100)}
+          // Keyboard equivalent of the double-click reset — a focusable control
+          // that does nothing on Enter is worse than no control at all.
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              setPct(100)
+            }
+          }}
           aria-label="Zoom level — double-click to reset to 100%"
           title="Double-click to reset to 100%"
           className="nums w-12 rounded px-1 py-0.5 text-center text-[12px] text-ink-600 transition-colors hover:bg-ink-200/70"

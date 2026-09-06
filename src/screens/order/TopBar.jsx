@@ -74,7 +74,11 @@ export default function TopBar({ subject, date, status, index, total, navigate }
         />
       </div>
 
-      <StatusPill status={status} tooltip={STATUS_HELP[status]} />
+      {/* shrink-0 wrapper: the pill's Tooltip span is a plain inline-flex and
+          would otherwise get squeezed alongside the truncating breadcrumb. */}
+      <span className="shrink-0">
+        <StatusPill status={status} tooltip={STATUS_HELP[status]} />
+      </span>
 
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
         <Button
