@@ -325,8 +325,12 @@ export default function Inbox({ params, navigate }) {
   const assignToMe = useCallback(
     (row) => {
       const prev = { user: row.user, status: row.status }
-      patchRow(row.id, { user: ME, status: row.status === 'New' ? 'In Progress' : row.status, unread: false })
-      toast.success(`Assigned to you`, {
+      patchRow(row.id, {
+        user: ME,
+        status: row.status === 'New' ? 'In Progress' : row.status,
+        unread: false,
+      })
+      toast.success('Assigned to you', {
         description: row.customer ?? row.subject,
         onUndo: () => patchRow(row.id, prev),
       })
