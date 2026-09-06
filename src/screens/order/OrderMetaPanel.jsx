@@ -24,8 +24,18 @@ export default function OrderMetaPanel() {
   const [busy, setBusy] = useState(false)
   const [parsedAgo, setParsedAgo] = useState('4 minutes ago')
   const timer = useRef(null)
+  const job = useRef(null)
+  const toastRef = useRef(toast)
+  toastRef.current = toast
 
-  useEffect(() => () => clearTimeout(timer.current), [])
+  // Navigating away mid-run must not leave the spinner toast up forever.
+  useEffect(
+    () => () => {
+      clearTimeout(timer.current)
+      if (job.current) toastRef.current?.dismiss(job.current)
+    },
+    [],
+  )
 
   const rerun = () => {
     if (busy) return
@@ -39,8 +49,10 @@ export default function OrderMetaPanel() {
       ],
       { defaultExpanded: true },
     )
+    job.current = id ?? null
     timer.current = setTimeout(() => {
       if (id) toast?.dismiss(id)
+      job.current = null
       toast?.success('Matching complete', {
         description: `${lineItems.length} lines re-scored · 2 still need review`,
       })
@@ -78,7 +90,17 @@ export default function OrderMetaPanel() {
         </div>
 
         <Field label="Writer" help={HELP.writer} className="col-span-2">
-          <TextInput readOnly value={order.writer} icon={Lock} suffix="You" aria-label="Writer" />
+          <TextInput
+            readOnly
+            value={order.writer}
+            icon={Lock}
+            suffix="You"
+            aria-label="Writer"
+            /* read-only:* rather than plain utilities — a bare bg-ink-50 loses
+               to the primitive's bg-white on stylesheet order, so the locked
+               field would otherwise look editable next to Customer PO. */
+            className="read-only:cursor-default read-only:border-ink-200 read-only:bg-ink-50 read-only:text-ink-500 read-only:shadow-none read-only:hover:border-ink-200"
+          />
         </Field>
 
         <Field label="Ship Date">
@@ -102,8 +124,8 @@ export default function OrderMetaPanel() {
         </Field>
       </div>
 
-      <div className="mt-3 flex items-center gap-2 border-t border-ink-200 pt-2.5">
-        <p className="min-w-0 flex-1 truncate text-[11px] text-ink-500">
+      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-ink-200 pt-2.5">
+        <p className="min-w-0 flex-1 text-[11px] leading-4 text-ink-500">
           Last parsed {parsedAgo} · {lineItems.length} line items
         </p>
         <Button

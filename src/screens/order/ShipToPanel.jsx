@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   MapPin,
   MapPinPlus,
@@ -72,6 +72,14 @@ export default function ShipToPanel({ defaultDeliveryOpen = false, onDeliveryTog
     setOpenState(v)
     onDeliveryToggle?.(v)
   }
+
+  // Deep links (?delivery=1) change the prop without remounting the panel, so
+  // follow it and keep the container's column span in step.
+  useEffect(() => {
+    setOpenState(defaultDeliveryOpen)
+    onDeliveryToggle?.(defaultDeliveryOpen)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultDeliveryOpen])
 
   const [priceName, priceCode] = splitBranch(branches.price)
   const [shipName, shipCode] = splitBranch(branches.ship)
@@ -172,7 +180,9 @@ export default function ShipToPanel({ defaultDeliveryOpen = false, onDeliveryTog
             value={shipVia}
             onChange={(e) => setShipVia(e.target.value)}
             aria-label="Ship Via"
-            className={cx(!shipVia && 'text-ink-400')}
+            /* `!` — the primitive's own text-ink-800 would otherwise win on
+               stylesheet order and the placeholder would not read as empty. */
+            className={cx(!shipVia && 'text-ink-400!')}
           >
             <option value="">Enter a Ship Via</option>
             {shipViaOptions.map((o) => (
@@ -281,7 +291,7 @@ export default function ShipToPanel({ defaultDeliveryOpen = false, onDeliveryTog
                 value={d.carrier}
                 onChange={set('carrier')}
                 aria-label="Shipping Carrier"
-                className={cx(!d.carrier && 'text-ink-400')}
+                className={cx(!d.carrier && 'text-ink-400!')}
               >
                 <option value="">Select a carrier</option>
                 {CARRIERS.map((c) => (
@@ -302,10 +312,10 @@ export default function ShipToPanel({ defaultDeliveryOpen = false, onDeliveryTog
                 disabled={!d.carrier}
                 placeholder="Added when the truck is loaded"
                 aria-label="Tracking Code"
-                className={cx(
-                  'nums',
-                  !d.carrier && 'cursor-not-allowed border-ink-200 bg-ink-50 text-ink-400',
-                )}
+                /* disabled:* rather than plain utilities — a bare bg-ink-50
+                   loses to the primitive's bg-white on stylesheet order, which
+                   left the locked field looking editable. */
+                className="nums disabled:cursor-not-allowed disabled:border-ink-200 disabled:bg-ink-50 disabled:text-ink-400 disabled:shadow-none disabled:placeholder:text-ink-300 disabled:hover:border-ink-200"
               />
             </Field>
 

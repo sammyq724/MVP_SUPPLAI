@@ -95,23 +95,26 @@ const SAMPLE_TYPED_LIST = [
 ].join('\n')
 
 const COLUMNS = [
-  { key: 'customer', label: 'Customer', width: 'w-[13.5%]', sortable: true },
+  { key: 'customer', label: 'Customer', width: 'w-[13%]', sortable: true },
   {
     key: 'branches',
     label: 'Branches',
     width: 'w-[10%]',
     help: 'Branches that can fill these lines. Requests often pull stock from two yards — each branch prices and ships its own portion.',
   },
-  { key: 'subject', label: 'Subject', width: 'w-[22%]', sortable: true },
+  { key: 'subject', label: 'Subject', width: 'w-[20%]', sortable: true },
   { key: 'status', label: 'Status', width: 'w-[9.5%]', sortable: true },
   { key: 'user', label: 'User', width: 'w-[9.5%]', sortable: true },
-  { key: 'orderNumber', label: 'Order Number', width: 'w-[9.5%]', sortable: true },
-  { key: 'poNumber', label: 'PO Number', width: 'w-[9%]', sortable: true },
-  { key: 'date', label: 'Date', width: 'w-[7.5%]', sortable: true },
+  // Widest header label of the lot — narrower than this and "ORDER NUMBER"
+  // spills into the next column at ~1440px.
+  { key: 'orderNumber', label: 'Order Number', width: 'w-[11.5%]', sortable: true },
+  { key: 'poNumber', label: 'PO Number', width: 'w-[8.5%]', sortable: true },
+  { key: 'date', label: 'Date', width: 'w-[7%]', sortable: true },
   {
     key: 'lines',
     label: 'Lines',
-    width: 'w-[4%]',
+    // Narrow data (1–2 digits) but the header + "?" still needs ~52px.
+    width: 'w-[5.5%]',
     sortable: true,
     align: 'right',
     help: 'Line items parsed out of the request. A line still counts here even if no product has been matched to it yet.',
@@ -594,7 +597,9 @@ export default function Inbox({ params, navigate }) {
             </span>
             <span className="h-4 w-px shrink-0 bg-ink-200" />
             <p className="min-w-0 truncate text-[12px] text-ink-500">
-              These quotes came from one request and can be merged back into a single order.
+              {selectionGroup
+                ? 'These quotes came from one request and can be merged back into a single order.'
+                : 'Assign or archive these together — unsplitting only applies to quotes from one request.'}
             </p>
             <div className="ml-auto flex shrink-0 items-center gap-2">
               {selectionGroup ? (
@@ -636,126 +641,131 @@ export default function Inbox({ params, navigate }) {
       )}
 
       {/* ----------------------------------------------------------- table */}
-      <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto px-5 pb-5">
-        <Card className="overflow-hidden">
-          <table className="w-full min-w-[1140px] table-fixed border-separate border-spacing-0 text-left">
-            <thead className="sticky top-0 z-10 bg-ink-50/95 backdrop-blur [&_th]:bg-ink-50/95">
-              <tr>
-                <th scope="col" className="h-9 w-11 border-b border-ink-200 pr-2 pl-5">
-                  <Checkbox
-                    checked={allChecked}
-                    indeterminate={someChecked && !allChecked}
-                    onChange={toggleAll}
-                    label={<span className="sr-only">Select all requests</span>}
-                  />
-                </th>
-                {COLUMNS.map((col) => {
-                  const active = sort.key === col.key
-                  return (
-                    <th
-                      key={col.key}
-                      scope="col"
-                      className={cx(
-                        'h-9 border-b border-ink-200 px-2 text-[11px] font-semibold tracking-[0.04em] text-ink-500 uppercase',
-                        col.width,
-                      )}
-                      aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
-                    >
-                      <span
-                        className={cx(
-                          'flex items-center gap-1',
-                          col.align === 'right' && 'justify-end',
-                        )}
-                      >
-                        {col.sortable ? (
-                          <button
-                            type="button"
-                            onClick={() => toggleSort(col.key)}
-                            className="group/sort -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 tracking-[0.04em] uppercase transition-colors hover:bg-ink-200/70 hover:text-ink-700"
-                          >
-                            <span className="truncate">{col.label}</span>
-                            {active ? (
-                              <ChevronDown
-                                className={cx(
-                                  'size-3 shrink-0 text-ink-500 transition-transform',
-                                  sort.dir === 'asc' && 'rotate-180',
-                                )}
-                                strokeWidth={2.5}
-                              />
-                            ) : (
-                              <ChevronsUpDown
-                                className="size-3 shrink-0 opacity-0 transition-opacity group-hover/sort:opacity-60"
-                                strokeWidth={2.25}
-                              />
-                            )}
-                          </button>
-                        ) : (
-                          <span className="truncate">{col.label}</span>
-                        )}
-                        {col.help && <HelpTip content={col.help} />}
-                      </span>
-                    </th>
-                  )
-                })}
-                <th scope="col" className="w-11 border-b border-ink-200">
-                  <span className="sr-only">Row actions</span>
-                </th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {visible.map((r) => (
-                <Row
-                  key={r.id}
-                  row={r}
-                  checked={selected.has(r.id)}
-                  flashing={flashId === r.id}
-                  forceStatusTip={tipsOn && r.id === firstNewId}
-                  forceSplitTip={tipsOn && r.id === firstSplitId}
-                  onToggle={() => toggleRow(r.id)}
-                  onOpen={() => navigate('order')}
-                  onAssign={() => assignToMe(r)}
-                  onProgress={() => markInProgress(r)}
-                  onSplit={() =>
-                    toast.info('Split from inside the request', {
-                      description: 'Open it and pick which lines go on each quote.',
-                    })
-                  }
-                  onArchive={() => archiveRows([r.id], 'Request archived')}
-                  onSetCustomer={(match) => setCustomer(r, match)}
-                />
-              ))}
-
-              {visible.length === 0 && (
+      <div className="flex min-h-0 flex-1 flex-col px-5 pb-5">
+        {/* The card owns the scroll rather than being scrolled by an outer div:
+            its `overflow-hidden` is itself a scrollport, so a sticky <thead>
+            inside it would stick to the card and ride out of view with it. */}
+        <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
+          <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
+            <table className="w-full min-w-[1140px] table-fixed border-separate border-spacing-0 text-left">
+              <thead className="sticky top-0 z-10 bg-ink-50/95 backdrop-blur [&_th]:bg-ink-50/95">
                 <tr>
-                  <td colSpan={COLUMNS.length + 2}>
-                    <div className="flex flex-col items-center gap-1.5 px-6 py-16 text-center">
-                      <SearchX className="mb-1 size-6 text-ink-300" strokeWidth={1.75} />
-                      <p className="text-[13px] font-medium text-ink-800">
-                        {query ? `No requests match “${query.trim()}”` : 'Nothing in this view'}
-                      </p>
-                      <p className="max-w-sm text-[12px] text-ink-500">
-                        Search by customer, subject, PO number or order number — or clear the
-                        filters to see the whole queue.
-                      </p>
-                      <Button
-                        size="sm"
-                        className="mt-2"
-                        onClick={() => {
-                          setQuery('')
-                          setTab('all')
-                        }}
+                  <th scope="col" className="h-9 w-11 border-b border-ink-200 pr-2 pl-5">
+                    <Checkbox
+                      checked={allChecked}
+                      indeterminate={someChecked && !allChecked}
+                      onChange={toggleAll}
+                      label={<span className="sr-only">Select all requests</span>}
+                    />
+                  </th>
+                  {COLUMNS.map((col) => {
+                    const active = sort.key === col.key
+                    return (
+                      <th
+                        key={col.key}
+                        scope="col"
+                        className={cx(
+                          'h-9 border-b border-ink-200 px-2 text-[11px] font-semibold tracking-[0.04em] text-ink-500 uppercase',
+                          col.width,
+                        )}
+                        aria-sort={active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
                       >
-                        Clear filters
-                      </Button>
-                    </div>
-                  </td>
+                        <span
+                          className={cx(
+                            'flex items-center gap-1',
+                            col.align === 'right' && 'justify-end',
+                          )}
+                        >
+                          {col.sortable ? (
+                            <button
+                              type="button"
+                              onClick={() => toggleSort(col.key)}
+                              className="group/sort -mx-1 inline-flex items-center gap-1 rounded px-1 py-0.5 tracking-[0.04em] uppercase transition-colors hover:bg-ink-200/70 hover:text-ink-700"
+                            >
+                              <span className="truncate">{col.label}</span>
+                              {active ? (
+                                <ChevronDown
+                                  className={cx(
+                                    'size-3 shrink-0 text-ink-500 transition-transform',
+                                    sort.dir === 'asc' && 'rotate-180',
+                                  )}
+                                  strokeWidth={2.5}
+                                />
+                              ) : (
+                                <ChevronsUpDown
+                                  className="size-3 shrink-0 opacity-0 transition-opacity group-hover/sort:opacity-60"
+                                  strokeWidth={2.25}
+                                />
+                              )}
+                            </button>
+                          ) : (
+                            <span className="truncate">{col.label}</span>
+                          )}
+                          {col.help && <HelpTip content={col.help} />}
+                        </span>
+                      </th>
+                    )
+                  })}
+                  <th scope="col" className="w-11 border-b border-ink-200">
+                    <span className="sr-only">Row actions</span>
+                  </th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
 
-          <div className="border-t border-ink-200">
+              <tbody>
+                {visible.map((r) => (
+                  <Row
+                    key={r.id}
+                    row={r}
+                    checked={selected.has(r.id)}
+                    flashing={flashId === r.id}
+                    forceStatusTip={tipsOn && r.id === firstNewId}
+                    forceSplitTip={tipsOn && r.id === firstSplitId}
+                    onToggle={() => toggleRow(r.id)}
+                    onOpen={() => navigate('order')}
+                    onAssign={() => assignToMe(r)}
+                    onProgress={() => markInProgress(r)}
+                    onSplit={() =>
+                      toast.info('Split from inside the request', {
+                        description: 'Open it and pick which lines go on each quote.',
+                      })
+                    }
+                    onArchive={() => archiveRows([r.id], 'Request archived')}
+                    onSetCustomer={(match) => setCustomer(r, match)}
+                  />
+                ))}
+
+                {visible.length === 0 && (
+                  <tr>
+                    <td colSpan={COLUMNS.length + 2}>
+                      <div className="flex flex-col items-center gap-1.5 px-6 py-16 text-center">
+                        <SearchX className="mb-1 size-6 text-ink-300" strokeWidth={1.75} />
+                        <p className="text-[13px] font-medium text-ink-800">
+                          {query ? `No requests match “${query.trim()}”` : 'Nothing in this view'}
+                        </p>
+                        <p className="max-w-sm text-[12px] text-ink-500">
+                          Search by customer, subject, PO number or order number — or clear the
+                          filters to see the whole queue.
+                        </p>
+                        <Button
+                          size="sm"
+                          className="mt-2"
+                          onClick={() => {
+                            setQuery('')
+                            setTab('all')
+                          }}
+                        >
+                          Clear filters
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="shrink-0 border-t border-ink-200">
             <Pagination
               from={visible.length ? 1 : 0}
               to={visible.length}

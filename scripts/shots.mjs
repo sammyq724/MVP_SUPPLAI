@@ -8,7 +8,9 @@ import { chromium } from 'playwright'
 import { mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 
-const BASE = process.argv[2] ?? 'http://127.0.0.1:4173'
+// Includes the Pages base path, since `vite preview` honours vite.config's
+// `base` and serves the app under /MVP_SUPPLAI/ rather than the root.
+const BASE = (process.argv[2] ?? 'http://127.0.0.1:4173/MVP_SUPPLAI').replace(/\/$/, '')
 const OUT = 'mockups'
 
 const SHOTS = [
