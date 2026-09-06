@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "shots": "vite build && vite preview --port 4173 & sleep 3 && node scripts/shots.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.41.0",

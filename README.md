@@ -17,13 +17,14 @@ npm install
 npm run dev          # http://127.0.0.1:5173
 ```
 
-Or render every state to PNG:
+Rendered PNGs of every state are checked into [`mockups/`](mockups). To regenerate them:
 
 ```bash
-npm run build
-npx vite preview --port 4173 &
-node scripts/shots.mjs        # writes ./mockups/*.png
+npm run shots        # build → preview → screenshot all 16 states into ./mockups
 ```
+
+The harness fails loudly: any console error, React warning, or failed request on a
+screen marks that shot `✗`. All sixteen currently pass clean.
 
 ## Screens
 

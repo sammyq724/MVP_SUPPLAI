@@ -24,7 +24,14 @@ const SHOTS = [
   ['10-order-create-menu', '#/order?state=resolved&menu=create', 'Screen 3 — Create Quote dropdown'],
   ['11-order-document', '#/order?tab=document', 'Screen 3 — attachment tab, inline document'],
   ['12-order-delivery', '#/order?delivery=1', 'Screen 3 — delivery address section expanded'],
-  ['13-order-showmore', '#/order?more=li-4', 'Screen 3 — "Show more" candidates expanded'],
+  [
+    '13-order-showmore',
+    '#/order?more=li-4',
+    'Screen 3 — "Show more" candidates expanded',
+    // Line 4 sits below the fold; scroll it up so the state is actually visible.
+    // Match the line item's own wording ("x 45"), not the email body's ("— 45").
+    '4-11/16" square boxes, 2-1/8" deep x 45',
+  ],
   ['14-asap-forms', '#/asap', 'ASAP Customer Forms'],
   ['15-product-search', '#/products', 'Product Search'],
   ['16-settings', '#/settings', 'Settings — Inbox & Email'],
@@ -46,12 +53,16 @@ const errors = []
 page.on('pageerror', (e) => errors.push(`[pageerror] ${e.message}`))
 page.on('console', (m) => m.type() === 'error' && errors.push(`[console] ${m.text()}`))
 
-for (const [name, hash, label] of SHOTS) {
+for (const [name, hash, label, scrollTo] of SHOTS) {
   errors.length = 0
   // Force a clean remount so mount-time effects (toasts, seeded state) re-run.
   await page.goto(`${BASE}/${hash}`, { waitUntil: 'networkidle' })
   await page.reload({ waitUntil: 'networkidle' })
   await page.waitForTimeout(700)
+  if (scrollTo) {
+    await page.getByText(scrollTo, { exact: false }).first().scrollIntoViewIfNeeded()
+    await page.waitForTimeout(400)
+  }
   await page.screenshot({ path: `${OUT}/${name}.png`, fullPage: false })
   console.log(`${errors.length ? '✗' : '✓'} ${name.padEnd(22)} ${label}`)
   for (const e of errors) console.log(`    ${e}`)
