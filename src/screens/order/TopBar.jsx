@@ -80,7 +80,7 @@ export default function TopBar({ subject, date, status, index, total, navigate }
         <Button
           variant="secondary"
           icon={Sparkles}
-          className="border-brand-200 bg-brand-50 text-brand-700 hover:border-brand-300 hover:bg-brand-100"
+          className="border-brand-200! bg-brand-50! text-brand-700! hover:border-brand-300! hover:bg-brand-100!"
           onClick={() =>
             toast?.info('Assistant is listening', {
               description: 'Try: “why was the strut clamp flagged?”',

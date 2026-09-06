@@ -95,23 +95,23 @@ const SAMPLE_TYPED_LIST = [
 ].join('\n')
 
 const COLUMNS = [
-  { key: 'customer', label: 'Customer', width: 'w-[16%]', sortable: true },
+  { key: 'customer', label: 'Customer', width: 'w-[13.5%]', sortable: true },
   {
     key: 'branches',
     label: 'Branches',
-    width: 'w-[12%]',
+    width: 'w-[10%]',
     help: 'Branches that can fill these lines. Requests often pull stock from two yards — each branch prices and ships its own portion.',
   },
   { key: 'subject', label: 'Subject', width: 'w-[22%]', sortable: true },
-  { key: 'status', label: 'Status', width: 'w-[8%]', sortable: true },
-  { key: 'user', label: 'User', width: 'w-[11%]', sortable: true },
-  { key: 'orderNumber', label: 'Order Number', width: 'w-[9%]', sortable: true },
+  { key: 'status', label: 'Status', width: 'w-[9.5%]', sortable: true },
+  { key: 'user', label: 'User', width: 'w-[9.5%]', sortable: true },
+  { key: 'orderNumber', label: 'Order Number', width: 'w-[9.5%]', sortable: true },
   { key: 'poNumber', label: 'PO Number', width: 'w-[9%]', sortable: true },
-  { key: 'date', label: 'Date', width: 'w-[8%]', sortable: true },
+  { key: 'date', label: 'Date', width: 'w-[7.5%]', sortable: true },
   {
     key: 'lines',
     label: 'Lines',
-    width: 'w-[5%]',
+    width: 'w-[4%]',
     sortable: true,
     align: 'right',
     help: 'Line items parsed out of the request. A line still counts here even if no product has been matched to it yet.',
@@ -634,7 +634,7 @@ export default function Inbox({ params, navigate }) {
       {/* ----------------------------------------------------------- table */}
       <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto px-5 pb-5">
         <Card className="overflow-hidden">
-          <table className="w-full min-w-[1080px] table-fixed border-separate border-spacing-0 text-left">
+          <table className="w-full min-w-[1140px] table-fixed border-separate border-spacing-0 text-left">
             <thead className="sticky top-0 z-10 bg-ink-50/95 backdrop-blur [&_th]:bg-ink-50/95">
               <tr>
                 <th scope="col" className="h-9 w-11 border-b border-ink-200 pr-2 pl-5">

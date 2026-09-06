@@ -237,13 +237,16 @@ function DocumentTab({ pages, onDownload }) {
             </h3>
             <div className="mt-2 border-b-[3px] border-double border-ink-800" />
 
-            <dl className="mt-4 grid grid-cols-2 gap-x-10 gap-y-1.5 text-[11px]">
+            <dl className="mt-4 grid grid-cols-2 gap-x-8 gap-y-1.5 text-[11px]">
               {page.meta.map(([k, v]) => (
-                <div key={k} className="flex gap-2 border-b border-dotted border-ink-300 pb-1">
-                  <dt className="w-20 shrink-0 font-semibold tracking-[0.06em] text-ink-500 uppercase">
+                <div
+                  key={k}
+                  className="flex items-baseline gap-3 border-b border-dotted border-ink-300 pb-1"
+                >
+                  <dt className="w-24 shrink-0 font-semibold tracking-[0.06em] whitespace-nowrap text-ink-500 uppercase">
                     {k}
                   </dt>
-                  <dd className="min-w-0 flex-1 text-ink-800">{v}</dd>
+                  <dd className="min-w-0 flex-1 break-words text-ink-800">{v}</dd>
                 </div>
               ))}
             </dl>
