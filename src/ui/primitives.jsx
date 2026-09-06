@@ -16,6 +16,9 @@ const BTN_VARIANTS = {
   link: 'bg-transparent text-brand-600 border border-transparent hover:text-brand-700 hover:underline underline-offset-2 px-0',
 }
 
+/** Single source of truth for the muted, non-interactive look. */
+const DISABLED = 'border border-ink-200 bg-ink-100 text-ink-400 shadow-none'
+
 const BTN_SIZES = {
   xs: 'h-6 px-2 text-[11px] gap-1 rounded-md',
   sm: 'h-7 px-2.5 text-[12px] gap-1.5 rounded-md',
@@ -40,9 +43,11 @@ export function Button({
       className={cx(
         'inline-flex shrink-0 items-center justify-center font-medium whitespace-nowrap transition-colors select-none',
         BTN_SIZES[size],
-        BTN_VARIANTS[variant],
-        disabled &&
-          'pointer-events-none border-ink-200 bg-ink-100 text-ink-400 shadow-none hover:bg-ink-100',
+        // Swap the variant out entirely rather than layering disabled classes on
+        // top — Tailwind resolves conflicts by stylesheet order, not class order,
+        // so `bg-ink-100` after `bg-brand-600` is not guaranteed to win.
+        disabled ? DISABLED : BTN_VARIANTS[variant],
+        disabled && 'pointer-events-none',
         className,
       )}
       {...rest}
@@ -104,10 +109,8 @@ export function SplitButton({
       <div
         className={cx(
           'inline-flex items-stretch overflow-hidden rounded-lg border shadow-panel transition-colors',
-          wrap,
+          disabled ? `${DISABLED} pointer-events-none` : wrap,
           size === 'lg' ? 'h-9' : 'h-8',
-          disabled &&
-            'pointer-events-none border-ink-200 bg-ink-100 text-ink-400 shadow-none hover:bg-ink-100',
         )}
       >
         <button
