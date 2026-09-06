@@ -365,16 +365,18 @@ export default function ProductSearch({ params, navigate }) {
                       <th scope="col" className="h-9 w-16 border-b border-ink-200 pr-1 pl-4">
                         <span className="sr-only">Thumbnail</span>
                       </th>
-                      <Th className="w-[24%]">Item</Th>
+                      {/* Descriptions differ only at the tail ("Belled End" vs
+                          "Plain End"), so the item column gets the extra width. */}
+                      <Th className="w-[30%]">Item</Th>
                       <Th className="w-[14%]">Manufacturer</Th>
                       <Th className="w-[5%]">UoM</Th>
-                      <Th className="w-[22%]" help={AVAIL_HELP}>
+                      <Th className="w-[20%]" help={AVAIL_HELP}>
                         Avail
                       </Th>
-                      <Th className="w-[13%]" align="right" help={PRICE_HELP}>
+                      <Th className="w-[12%]" align="right" help={PRICE_HELP}>
                         Unit Price
                       </Th>
-                      <th scope="col" className="w-[15%] border-b border-ink-200 pr-4">
+                      <th scope="col" className="w-[13%] border-b border-ink-200 pr-4">
                         <span className="sr-only">Row actions</span>
                       </th>
                     </tr>
