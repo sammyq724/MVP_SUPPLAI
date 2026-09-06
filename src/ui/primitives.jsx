@@ -102,7 +102,13 @@ export function SplitButton({
     variant === 'primary'
       ? 'bg-brand-600 border-brand-600 text-white hover:bg-brand-700'
       : 'bg-white border-ink-300 text-ink-700 hover:bg-ink-50'
-  const divider = variant === 'primary' ? 'border-brand-500/70' : 'border-ink-300'
+  // Neutral while disabled — otherwise a greyed-out primary keeps a brand-blue
+  // rule down its middle and the muted state reads as half-active.
+  const divider = disabled
+    ? 'border-ink-200'
+    : variant === 'primary'
+      ? 'border-brand-500/70'
+      : 'border-ink-300'
 
   return (
     <div className="relative" ref={ref}>

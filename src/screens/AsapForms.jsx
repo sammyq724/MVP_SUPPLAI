@@ -317,7 +317,7 @@ function FormCard({
             icon={copied ? Check : Copy}
             label={`Copy share link for ${f.name}`}
             onClick={() => copy(`https://${f.url}`)}
-            className={copied ? 'text-emerald-600 hover:text-emerald-700' : undefined}
+            className={copied ? 'text-emerald-600! hover:text-emerald-700!' : undefined}
           />
         </Tooltip>
       </div>

@@ -207,7 +207,9 @@ export default function Settings({ params, navigate }) {
                 {/* ------------------------------------- connected inboxes */}
                 <Panel
                   title="Connected inboxes"
-                  bodyClass="p-0"
+                  /* `!` so it beats Panel's own p-3 — Tailwind resolves the
+                     conflict by stylesheet order, where p-3 comes last. */
+                  bodyClass="p-0!"
                   action={
                     <Button
                       size="xs"
@@ -269,7 +271,7 @@ export default function Settings({ params, navigate }) {
                 </Panel>
 
                 {/* ---------------------------------------- parsing rules */}
-                <Panel title="Parsing rules" bodyClass="p-0">
+                <Panel title="Parsing rules" bodyClass="p-0!">
                   <RuleRow
                     title="Auto-assign to the account owner"
                     description="New requests go straight to the rep who owns the customer instead of sitting unassigned in the queue."
