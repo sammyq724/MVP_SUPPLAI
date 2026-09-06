@@ -55,3 +55,30 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  # A green deploy only proves the artifact was accepted. If the Pages source is
+  # still "deploy from a branch", the branch build publishes the repo root over
+  # it and the URL serves the unbuilt dev template. Assert what is actually served.
+  verify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Assert the live URL serves the built app
+        run: |
+          URL="https://sammyq724.github.io/MVP_SUPPLAI/"
+          for i in $(seq 1 10); do
+            BODY=$(curl -sSL --max-time 30 "$URL" || true)
+            if printf '%s' "$BODY" | grep -q '/MVP_SUPPLAI/assets/index-.*\.js'; then
+              echo "OK — serving the built bundle:"
+              printf '%s' "$BODY" | grep -o '/MVP_SUPPLAI/assets/[^"]*'
+              exit 0
+            fi
+            echo "attempt $i: not the built app yet, waiting..."
+            sleep 20
+          done
+          echo "::error::$URL is not serving the built app."
+          echo "----- what it actually returns -----"
+          printf '%s' "$BODY" | head -40
+          echo "------------------------------------"
+          echo "::error::Set Settings → Pages → Source to 'GitHub Actions'."
+          exit 1

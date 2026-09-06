@@ -31,7 +31,7 @@ import { useToast } from '../../ui/toast.jsx'
  * candidate matches underneath. The rep works top-to-bottom and picks a row.
  */
 
-/** Why the ordered quantity is not exactly what the customer typed. */
+/** Why the ordered quantity is snapped to a sellable multiple, per line. */
 const ROUNDING_NOTE = {
   'li-1':
     'Ordering 400 ft — 40 full 10 ft sticks. PVC conduit is sold by the stick, so any odd length rounds up to the next 10 ft.',
