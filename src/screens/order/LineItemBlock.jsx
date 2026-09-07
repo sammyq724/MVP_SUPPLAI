@@ -7,10 +7,12 @@ import {
   Replace,
   Search,
   StickyNote,
+  Table2,
   Trash2,
 } from 'lucide-react'
 import {
   Badge,
+  Button,
   Card,
   Checkbox,
   IconButton,
@@ -23,6 +25,7 @@ import {
 import { ProductThumb } from '../../ui/ProductThumb.jsx'
 import { branches, moreCandidates } from '../../data/order.js'
 import { useToast } from '../../ui/toast.jsx'
+import FindItemModal from './FindItemModal.jsx'
 
 /**
  * One parsed line item: the customer's literal words on top, the suggested
@@ -187,9 +190,13 @@ export default function LineItemBlock({
   onToggleMore,
   checked,
   onCheck,
+  onPickFromCatalog,
+  defaultFindOpen = false,
+  defaultFindGroupBy = null,
 }) {
   const toast = useToast()
   const [query, setQuery] = useState('')
+  const [findOpen, setFindOpen] = useState(defaultFindOpen)
 
   const unresolved = !selectedId
   const extra = moreCandidates[li.id] ?? []
@@ -201,12 +208,7 @@ export default function LineItemBlock({
     : candidates
 
   const lineMenu = [
-    {
-      label: 'Replace item',
-      icon: Replace,
-      onClick: () =>
-        toast?.info('Replace item', { description: `Line ${index} — pick a different SKU` }),
-    },
+    { label: 'Replace item', icon: Replace, onClick: () => setFindOpen(true) },
     {
       label: 'Add note',
       icon: StickyNote,
@@ -265,6 +267,9 @@ export default function LineItemBlock({
         </div>
 
         {/* ------------------------------------------------------ line search */}
+        {/* Typing filters the suggestions already on the line; Enter — or the
+            button — escalates to the full item-master lookup, carrying whatever
+            was typed with it. */}
         <div className="flex items-center gap-2 px-3 pb-2.5">
           <div className="min-w-0 flex-1">
             <TextInput
@@ -274,12 +279,33 @@ export default function LineItemBlock({
               aria-label={`Search catalog for line ${index}`}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  setFindOpen(true)
+                }
+              }}
             />
           </div>
-          <span className="shrink-0 text-[11px] whitespace-nowrap text-ink-400">
-            or paste a SKU
-          </span>
+          <Button
+            size="sm"
+            icon={Table2}
+            className="shrink-0"
+            onClick={() => setFindOpen(true)}
+            aria-label={`Find an item for line ${index}`}
+          >
+            Find item
+          </Button>
         </div>
+
+        <FindItemModal
+          open={findOpen}
+          onClose={() => setFindOpen(false)}
+          onPick={(row) => onPickFromCatalog?.(li.id, row)}
+          lineLabel={li.requested}
+          initialSearch={query}
+          defaultGroupBy={defaultFindGroupBy}
+        />
 
         {/* ------------------------------------------------- column headers */}
         <div className="flex h-6 items-center gap-2.5 border-t border-ink-200 bg-ink-50/70 px-3 text-[10px] font-medium tracking-wide text-ink-400 uppercase">

@@ -34,7 +34,13 @@ const SHOTS = [
     // Match the line item's own wording ("x 45"), not the email body's ("— 45").
     '4-11/16" square boxes, 2-1/8" deep x 45',
   ],
-  ['14-settings', '#/settings', 'Settings — Inbox & Email'],
+  ['14-find-item', '#/order?find=li-4', 'Find Item — item-master lookup for a line'],
+  [
+    '15-find-item-grouped',
+    '#/order?find=li-4&group=productType',
+    'Find Item — grouped by Product Type',
+  ],
+  ['16-settings', '#/settings', 'Settings — Inbox & Email'],
 ]
 
 await mkdir(OUT, { recursive: true })

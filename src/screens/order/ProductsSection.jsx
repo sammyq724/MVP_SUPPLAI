@@ -47,6 +47,9 @@ export default function ProductsSection({
   expanded,
   onToggleMore,
   candidatesFor,
+  onPickFromCatalog,
+  findOpenFor,
+  findGroupBy,
   checked,
   onCheck,
   openOnly,
@@ -262,6 +265,9 @@ export default function ProductsSection({
           li={li}
           index={LINE_INDEX[li.id]}
           candidates={candidatesFor(li)}
+          onPickFromCatalog={onPickFromCatalog}
+          defaultFindOpen={findOpenFor === li.id}
+          defaultFindGroupBy={findGroupBy}
           selectedId={selections[li.id]}
           onSelect={onSelect}
           qtys={qtys}

@@ -39,10 +39,28 @@ export default function OrderDetail({ params, navigate }) {
   const [highlightOutstanding, setHighlightOutstanding] = useState(false)
   const [deliveryOpen, setDeliveryOpen] = useState(params.delivery === '1')
 
+  // Items pulled out of the Find Item lookup, per line. They sit above the
+  // suggested matches so the rep's own choice is the first thing they see.
+  const [pickedByLine, setPickedByLine] = useState({})
+
+  /** Every candidate a line can currently resolve to, regardless of source. */
+  const allCandidatesFor = useCallback(
+    (li) => [
+      ...(pickedByLine[li.id] ?? []),
+      ...li.candidates,
+      ...(moreCandidates[li.id] ?? []),
+    ],
+    [pickedByLine],
+  )
+
+  /** What the line renders right now — extra matches only once expanded. */
   const candidatesFor = useCallback(
-    (li) =>
-      expanded.has(li.id) ? [...li.candidates, ...(moreCandidates[li.id] ?? [])] : li.candidates,
-    [expanded],
+    (li) => [
+      ...(pickedByLine[li.id] ?? []),
+      ...li.candidates,
+      ...(expanded.has(li.id) ? (moreCandidates[li.id] ?? []) : []),
+    ],
+    [expanded, pickedByLine],
   )
 
   const select = useCallback(
@@ -59,6 +77,45 @@ export default function OrderDetail({ params, navigate }) {
   const setQty = useCallback((lineId, candId, v) => {
     setQtys((q) => ({ ...q, [`${lineId}:${candId}`]: v }))
   }, [])
+
+  /**
+   * An item chosen from the Find Item lookup. The catalog row is reshaped into
+   * the same candidate contract the suggested matches use, so everything
+   * downstream — the row, the qty box, the running total — treats it the same.
+   */
+  const pickFromCatalog = useCallback(
+    (lineId, catalogRow) => {
+      const li = lineItems.find((l) => l.id === lineId)
+      if (!li) return
+      const id = `pick:${lineId}:${catalogRow.itemId}`
+      // Carry the line's requested quantity over rather than starting at zero.
+      const qty = li.candidates[0]?.qty ?? 1
+      const candidate = {
+        id,
+        sku: catalogRow.itemId,
+        description: catalogRow.description,
+        thumb: catalogRow.thumb,
+        uom: catalogRow.uom,
+        avail: catalogRow.avail,
+        qty,
+        unitPrice: catalogRow.unitPrice,
+        fromCatalog: true,
+      }
+      const prev = selections[lineId]
+      setPickedByLine((p) => {
+        const existing = p[lineId] ?? []
+        if (existing.some((c) => c.id === id)) return p
+        return { ...p, [lineId]: [candidate, ...existing] }
+      })
+      setQtys((q) => (q[`${lineId}:${id}`] === undefined ? { ...q, [`${lineId}:${id}`]: qty } : q))
+      setSelections((s) => ({ ...s, [lineId]: id }))
+      toast.success('Item updated', {
+        description: catalogRow.itemId,
+        onUndo: () => setSelections((s) => ({ ...s, [lineId]: prev })),
+      })
+    },
+    [selections, toast],
+  )
 
   const toggleMore = useCallback((lineId) => {
     setExpanded((s) => {
@@ -91,11 +148,11 @@ export default function OrderDetail({ params, navigate }) {
       lineItems.reduce((sum, li) => {
         const id = selections[li.id]
         if (!id) return sum
-        const cand = [...li.candidates, ...(moreCandidates[li.id] ?? [])].find((c) => c.id === id)
+        const cand = allCandidatesFor(li).find((c) => c.id === id)
         if (!cand) return sum
         return sum + cand.unitPrice * (qtys[`${li.id}:${cand.id}`] ?? cand.qty)
       }, 0),
-    [selections, qtys],
+    [selections, qtys, allCandidatesFor],
   )
 
   return (
@@ -139,6 +196,9 @@ export default function OrderDetail({ params, navigate }) {
               expanded={expanded}
               onToggleMore={toggleMore}
               candidatesFor={candidatesFor}
+              onPickFromCatalog={pickFromCatalog}
+              findOpenFor={params.find ?? null}
+              findGroupBy={params.group ?? null}
               checked={checked}
               onCheck={setChecked}
               openOnly={openOnly}

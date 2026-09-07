@@ -36,11 +36,11 @@ npm run dev          # http://127.0.0.1:5173
 Rendered PNGs of every state are checked into [`mockups/`](mockups). To regenerate them:
 
 ```bash
-npm run shots        # build → preview → screenshot all 14 states into ./mockups
+npm run shots        # build → preview → screenshot all 16 states into ./mockups
 ```
 
 The harness fails loudly: any console error, React warning, or failed request on a
-screen marks that shot `✗`. All fourteen currently pass clean.
+screen marks that shot `✗`. All sixteen currently pass clean.
 
 ## Screens
 
@@ -88,6 +88,28 @@ clicked into.
 | Attachment tab — document rendered inline with zoom | `#/order?tab=document` |
 | Delivery address + instructions expanded | `#/order?delivery=1` |
 | "Show more" suggestions expanded (up to 10) | `#/order?more=li-4` |
+| Find Item lookup open for a line | `#/order?find=li-4` |
+| Find Item grouped by a column | `#/order?find=li-4&group=productType` |
+
+### Find Item
+
+Every line's "Search for a product" row escalates to **Find Item**, an item-master
+lookup modelled on the ERP finder reps already use, so the muscle memory carries over:
+
+- **Search Text** plus an operator — Contains, Does not contain, Is equal to, Is not
+  equal to, Starts with, Ends with, Is null, Is not null.
+- **Search all bold Columns** — on, the search text runs against every bold (searchable)
+  column; off, against Item ID alone.
+- **A per-column filter row** where each funnel opens the same operator list. Column
+  filters AND together, and AND with the global search.
+- **Group by any column** — drag a header into the drop zone, or use the column's kebab
+  menu. Groups collapse and carry counts.
+- **A kebab on every column** for sort, group, filter and hide.
+
+Typing in the line's own box filters the suggestions already on that line; pressing Enter
+(or the **Find item** button) escalates to the finder, carrying the text with it. Picking
+an item selects it on the line as a normal candidate — it inherits the line's quantity and
+flows into the running total like any suggested match.
 
 ## Design language
 
@@ -125,12 +147,15 @@ src/
     queue.js              14 queue rows
     order.js              email thread, PDF takeoff, header data, 6 parsed lines
                           with ranked AI product suggestions
+    catalog.js            54-row item master + the finder's column and operator
+                          contracts, and the operator matcher itself
   screens/
     Inbox.jsx             Screen 1
     NewOrderModal.jsx     Screen 2 — typed text + file attachments
     OrderDetail.jsx       Screen 3 container — owns all shared line-item state
     order/                TopBar, SourcePane, QuoteToPanel, ShipToPanel,
-                          OrderMetaPanel, ProductsSection, LineItemBlock, SummaryBar
+                          OrderMetaPanel, ProductsSection, LineItemBlock,
+                          FindItemModal, SummaryBar
     Settings.jsx          Screen 4
 ```
 
