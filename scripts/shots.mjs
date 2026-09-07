@@ -14,29 +14,27 @@ const BASE = (process.argv[2] ?? 'http://127.0.0.1:4173/MVP_SUPPLAI').replace(/\
 const OUT = 'mockups'
 
 const SHOTS = [
-  ['01-inbox', '#/inbox', 'Screen 1 — request queue, default'],
-  ['02-inbox-tooltips', '#/inbox?tips=1', 'Screen 1 — status + split-quote tooltips open'],
-  ['03-typelist-empty', '#/inbox?modal=typelist', 'Screen 2 — Type List modal, Submit disabled'],
-  ['04-typelist-error', '#/inbox?modal=typelist&error=1', 'Screen 2 — submitted empty, inline validation'],
-  ['05-typelist-filled', '#/inbox?modal=typelist&filled=1', 'Screen 2 — text entered, Submit enabled'],
-  ['06-inbox-processing', '#/inbox?processing=1', 'Screen 2 — processing toast + new queue row'],
-  ['07-split-selected', '#/inbox?split=1', 'Screen 4 — related split rows checked, Unsplit action'],
-  ['08-order-outstanding', '#/order', 'Screen 3 — 2 lines outstanding, actions disabled'],
-  ['09-order-resolved', '#/order?state=resolved', 'Screen 3 — all lines matched, actions enabled'],
-  ['10-order-create-menu', '#/order?state=resolved&menu=create', 'Screen 3 — Create Quote dropdown'],
-  ['11-order-document', '#/order?tab=document', 'Screen 3 — attachment tab, inline document'],
-  ['12-order-delivery', '#/order?delivery=1', 'Screen 3 — delivery address section expanded'],
+  ['01-inbox', '#/inbox', 'Sales — request queue, default'],
+  ['02-inbox-tooltips', '#/inbox?tips=1', 'Sales — status tooltip open'],
+  ['03-new-order-empty', '#/inbox?modal=new', 'New order — empty, Submit disabled'],
+  ['04-new-order-error', '#/inbox?modal=new&error=1', 'New order — submitted empty, inline validation'],
+  ['05-new-order-filled', '#/inbox?modal=new&filled=1', 'New order — text entered, Submit enabled'],
+  ['06-new-order-files', '#/inbox?modal=new&files=1', 'New order — file attached, no text needed'],
+  ['07-inbox-processing', '#/inbox?processing=1', 'New order — processing toast + new queue row'],
+  ['08-order-outstanding', '#/order', 'Order detail — 2 lines outstanding, actions disabled'],
+  ['09-order-resolved', '#/order?state=resolved', 'Order detail — all lines matched, actions enabled'],
+  ['10-order-create-menu', '#/order?state=resolved&menu=create', 'Order detail — Create Quote dropdown'],
+  ['11-order-document', '#/order?tab=document', 'Order detail — attachment tab, inline document'],
+  ['12-order-delivery', '#/order?delivery=1', 'Order detail — delivery section expanded'],
   [
     '13-order-showmore',
     '#/order?more=li-4',
-    'Screen 3 — "Show more" candidates expanded',
+    'Order detail — "Show more" matches expanded',
     // Line 4 sits below the fold; scroll it up so the state is actually visible.
     // Match the line item's own wording ("x 45"), not the email body's ("— 45").
     '4-11/16" square boxes, 2-1/8" deep x 45',
   ],
-  ['14-asap-forms', '#/asap', 'ASAP Customer Forms'],
-  ['15-product-search', '#/products', 'Product Search'],
-  ['16-settings', '#/settings', 'Settings — Inbox & Email'],
+  ['14-settings', '#/settings', 'Settings — Inbox & Email'],
 ]
 
 await mkdir(OUT, { recursive: true })

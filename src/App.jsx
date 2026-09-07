@@ -3,8 +3,6 @@ import Sidebar from './layout/Sidebar.jsx'
 import { ToastProvider } from './ui/toast.jsx'
 import Inbox from './screens/Inbox.jsx'
 import OrderDetail from './screens/OrderDetail.jsx'
-import AsapForms from './screens/AsapForms.jsx'
-import ProductSearch from './screens/ProductSearch.jsx'
 import Settings from './screens/Settings.jsx'
 
 /**
@@ -15,20 +13,20 @@ import Settings from './screens/Settings.jsx'
  * deterministically.
  *
  *   #/inbox                       Screen 1 — request queue
- *     ?modal=typelist               Screen 2 — Type List modal, empty
- *     ?modal=typelist&filled=1      …with text entered (Submit enabled)
- *     ?modal=typelist&error=1       …submitted empty (inline validation)
+ *     ?modal=new                    Screen 2 — New order modal, empty
+ *     ?modal=new&filled=1           …with text entered (Submit enabled)
+ *     ?modal=new&files=1            …with a file attached and no text
+ *     ?modal=new&error=1            …submitted empty (inline validation)
  *     ?processing=1                 post-submit: processing toast + new row
  *     ?banner=0                     inbox-connect banner dismissed
- *     ?split=1                      Screen 4 — related split rows checked, Unsplit shown
- *     ?tips=1                       force status / split-quote tooltips open
+ *     ?tips=1                       force the status tooltip open
  *   #/order                       Screen 3 — order detail (2 lines outstanding)
  *     ?state=resolved               every line matched, actions enabled
  *     ?tab=document                 source pane on the attachment tab
  *     ?delivery=1                   delivery address + instructions expanded
  *     ?more=li-4                    "Show more" candidates expanded for a line
  *     ?menu=create                  Create Quote dropdown open
- *   #/asap  #/products  #/settings
+ *   #/settings                    Account, inbox and parsing settings
  */
 function parseHash() {
   const raw = window.location.hash.replace(/^#\/?/, '')
@@ -70,8 +68,6 @@ export default function App() {
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {route === 'inbox' && <Inbox params={params} navigate={navigate} />}
           {route === 'order' && <OrderDetail params={params} navigate={navigate} />}
-          {route === 'asap' && <AsapForms params={params} navigate={navigate} />}
-          {route === 'products' && <ProductSearch params={params} navigate={navigate} />}
           {route === 'settings' && <Settings params={params} navigate={navigate} />}
         </main>
       </div>

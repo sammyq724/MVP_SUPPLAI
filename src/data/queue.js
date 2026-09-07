@@ -1,12 +1,8 @@
 /**
  * Request queue rows — one per incoming purchase/quote request, regardless of
  * source (email, PDF attachment, phone call transcript, manual entry).
- *
- * `splitGroup` marks rows produced by splitting one inbound request into
- * several quotes; rows in the same group share customer / subject / date but
- * carry distinct PO + order numbers and line counts.
  */
-export const INBOUND_EMAIL = 'orders@meridian.supplai.com'
+export const INBOUND_EMAIL = 'orders@meridian.solder.com'
 
 export const requests = [
   {
@@ -40,9 +36,8 @@ export const requests = [
     lines: 8,
     source: 'email',
   },
-  // ---- split group: one inbound RFQ split into three quotes -----------------
   {
-    id: 'req-1039-a',
+    id: 'req-1039',
     customer: 'Northgate Industrial',
     contact: 'Sylvia Boone',
     branches: ['Houston — North', 'Pasadena Yard'],
@@ -50,52 +45,42 @@ export const requests = [
     status: 'In Progress',
     user: { name: 'Alex Mercer', initials: 'AM', tone: 'blue' },
     orderNumber: 'SO-204871',
-    poNumber: 'PO-77301-1',
+    poNumber: 'PO-77301',
     date: 'Sep 5, 2026',
     time: '11:02 AM',
-    lines: 6,
+    lines: 13,
     source: 'email',
-    splitGroup: 'g-77301',
-    splitIndex: 1,
-    splitTotal: 3,
   },
   {
-    id: 'req-1039-b',
-    customer: 'Northgate Industrial',
-    contact: 'Sylvia Boone',
-    branches: ['Houston — North', 'Pasadena Yard'],
-    subject: 'Q3 restock — switchgear & wire',
-    status: 'In Progress',
-    user: { name: 'Alex Mercer', initials: 'AM', tone: 'blue' },
-    orderNumber: 'SO-204872',
-    poNumber: 'PO-77301-2',
-    date: 'Sep 5, 2026',
-    time: '11:02 AM',
-    lines: 4,
-    source: 'email',
-    splitGroup: 'g-77301',
-    splitIndex: 2,
-    splitTotal: 3,
-  },
-  {
-    id: 'req-1039-c',
-    customer: 'Northgate Industrial',
-    contact: 'Sylvia Boone',
-    branches: ['Houston — North', 'Pasadena Yard'],
-    subject: 'Q3 restock — switchgear & wire',
+    id: 'req-1042',
+    customer: 'Westbrook Mechanical',
+    contact: 'Priya Venkatesan',
+    branches: ['Katy Supply', 'Sugar Land'],
+    subject: 'Add-on: 2 in. rigid + elbows for stair 3',
     status: 'New',
     user: null,
     orderNumber: null,
-    poNumber: 'PO-77301-3',
+    poNumber: 'PO-WB-4420',
     date: 'Sep 5, 2026',
-    time: '11:02 AM',
-    lines: 3,
+    time: '10:41 AM',
+    lines: 5,
     source: 'email',
-    splitGroup: 'g-77301',
-    splitIndex: 3,
-    splitTotal: 3,
   },
-  // --------------------------------------------------------------------------
+  {
+    id: 'req-1043',
+    customer: 'Cobalt Site Services',
+    contact: 'Darius Whitmore',
+    branches: ['Pasadena Yard', 'Baytown'],
+    subject: 'Temp power panel + cord sets',
+    status: 'New',
+    user: null,
+    orderNumber: null,
+    poNumber: '—',
+    date: 'Sep 5, 2026',
+    time: '10:08 AM',
+    lines: 6,
+    source: 'phone',
+  },
   {
     id: 'req-1038',
     customer: 'Halcyon Plumbing & Heating',
@@ -239,11 +224,6 @@ export const STATUS_HELP = {
   New: 'Parsed and waiting for a rep. Nothing has been matched yet — open it to confirm the customer, then review the AI product matches.',
   'In Progress':
     'A rep has started this request. Some lines still need a product selected or a price confirmed before it can be turned into a quote or order.',
-}
-
-export const SPLIT_HELP = {
-  title: 'Split quote',
-  body: 'This request was split into several quotes — usually because the lines ship from different branches or on different dates. Each split carries its own PO and order number. Select the related rows and choose “Unsplit” to merge them back into one request.',
 }
 
 export const AVATAR_TONES = {

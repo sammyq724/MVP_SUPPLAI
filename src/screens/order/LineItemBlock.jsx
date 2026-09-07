@@ -6,8 +6,6 @@ import {
   EllipsisVertical,
   Replace,
   Search,
-  Sparkles,
-  Split,
   StickyNote,
   Trash2,
 } from 'lucide-react'
@@ -27,8 +25,11 @@ import { branches, moreCandidates } from '../../data/order.js'
 import { useToast } from '../../ui/toast.jsx'
 
 /**
- * One parsed line item: the customer's literal words on top, the ranked
- * candidate matches underneath. The rep works top-to-bottom and picks a row.
+ * One parsed line item: the customer's literal words on top, the suggested
+ * product matches underneath in rank order. The rep works top-to-bottom and
+ * picks a row. Rows carry only what a rep needs to choose — SKU, description,
+ * unit of measure, live availability, quantity and price — with no match-
+ * confidence labels competing for attention.
  */
 
 /** Why the ordered quantity is snapped to a sellable multiple, per line. */
@@ -90,7 +91,7 @@ function CandidateRow({ li, cand, selected, qty, onQty, onSelect }) {
         role="radio"
         aria-checked={selected}
         onClick={() => onSelect(li.id, cand.id)}
-        className="flex min-w-0 flex-1 items-center gap-2.5 py-2 pl-3 text-left"
+        className="flex min-w-0 flex-1 items-center gap-3 py-2 pl-3 text-left"
       >
         <span
           className={cx(
@@ -107,21 +108,19 @@ function CandidateRow({ li, cand, selected, qty, onQty, onSelect }) {
         <ProductThumb shape={cand.thumb} size="sm" />
 
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-1.5">
-            <span
-              className={cx(
-                'truncate font-mono text-[12px] font-semibold',
-                selected ? 'text-brand-800' : 'text-ink-900',
-              )}
-            >
-              {cand.sku}
-            </span>
-            <Badge tone={cand.badge.tone}>{cand.badge.label}</Badge>
+          <span
+            className={cx(
+              'block truncate font-mono text-[12px] font-semibold',
+              selected ? 'text-brand-800' : 'text-ink-900',
+            )}
+          >
+            {cand.sku}
           </span>
-          <span className="block truncate text-[12px] text-ink-500">{cand.description}</span>
-          <span className="mt-0.5 flex items-center gap-1 text-[11px] text-ink-400">
-            <Sparkles className="size-3 shrink-0" strokeWidth={2} aria-hidden="true" />
-            <span className="truncate">{cand.engine}</span>
+          {/* Wraps rather than truncates: these descriptions differ only at the
+              tail ("Belled End" vs "Plain End"), so eliding it hides the very
+              thing the rep is choosing between. */}
+          <span className="line-clamp-2 text-[12px] leading-4 text-ink-500">
+            {cand.description}
           </span>
         </span>
 
@@ -207,14 +206,6 @@ export default function LineItemBlock({
       icon: Replace,
       onClick: () =>
         toast?.info('Replace item', { description: `Line ${index} — pick a different SKU` }),
-    },
-    {
-      label: 'Split line',
-      icon: Split,
-      onClick: () =>
-        toast?.success(`Line ${index} split into 2 lines`, {
-          description: 'Quantities divided evenly',
-        }),
     },
     {
       label: 'Add note',

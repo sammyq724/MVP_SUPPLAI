@@ -8,7 +8,6 @@ import {
   MoreVertical,
   Printer,
   Copy,
-  SquareSplitHorizontal,
   Archive,
 } from 'lucide-react'
 import { Button, IconButton, Menu, StatusPill, cx } from '../../ui/primitives.jsx'
@@ -110,14 +109,6 @@ export default function TopBar({ subject, date, status, index, total, navigate }
               icon: Copy,
               onClick: () =>
                 toast?.success('Request duplicated', { description: 'Draft copy added to the queue' }),
-            },
-            {
-              label: 'Split quote',
-              icon: SquareSplitHorizontal,
-              onClick: () =>
-                toast?.info('Select the lines to split', {
-                  description: 'Check lines in Products, then confirm the split',
-                }),
             },
             '-',
             {

@@ -300,36 +300,6 @@ export function HelpTip({ content, side = 'bottom', open }) {
   )
 }
 
-/** Rich hover popover — used by the "Split quote" tag. */
-export function Popover({ content, children, open: openProp, side = 'bottom', width = 'w-72' }) {
-  const [hover, setHover] = useState(false)
-  const show = openProp ?? hover
-  const pos = {
-    bottom: 'top-full left-0 mt-1.5',
-    top: 'bottom-full left-0 mb-1.5',
-  }[side]
-  return (
-    <span
-      className="relative inline-flex"
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      {children}
-      {show && (
-        <span
-          className={cx(
-            'animate-in-up absolute z-50 rounded-xl border border-ink-200 bg-white p-3 text-left text-[12px] leading-[1.45] font-normal text-ink-600 shadow-pop',
-            width,
-            pos,
-          )}
-        >
-          {content}
-        </span>
-      )}
-    </span>
-  )
-}
-
 /* ------------------------------------------------------------------ Controls */
 
 export function Checkbox({ checked, indeterminate, onChange, label, className, disabled }) {

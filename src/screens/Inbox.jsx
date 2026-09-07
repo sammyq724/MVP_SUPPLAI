@@ -9,18 +9,16 @@ import {
   Clock,
   Copy,
   ExternalLink,
+  FilePlus,
   History,
   ListPlus,
   Mail,
-  Merge,
   MoreVertical,
   Paperclip,
   Phone,
   Plus,
   SearchX,
   SlidersHorizontal,
-  Split,
-  Upload,
   UserCheck,
   UserPlus,
   X,
@@ -34,7 +32,6 @@ import {
   IconButton,
   Menu,
   Pagination,
-  Popover,
   SearchInput,
   StatusPill,
   Tooltip,
@@ -43,8 +40,8 @@ import {
   useOnClickOutside,
 } from '../ui/primitives.jsx'
 import { useToast } from '../ui/toast.jsx'
-import { AVATAR_TONES, INBOUND_EMAIL, SPLIT_HELP, STATUS_HELP, requests } from '../data/queue.js'
-import TypeListModal from './TypeListModal.jsx'
+import { AVATAR_TONES, INBOUND_EMAIL, STATUS_HELP, requests } from '../data/queue.js'
+import NewOrderModal from './NewOrderModal.jsx'
 
 /* ------------------------------------------------------------------ local data */
 
@@ -84,7 +81,7 @@ const PLACEHOLDER_CUSTOMER = {
   branches: [],
 }
 
-/** Pre-filled body for #/inbox?modal=typelist&filled=1 */
+/** Pre-filled body for #/inbox?modal=new&filled=1 */
 const SAMPLE_TYPED_LIST = [
   '12 ea 3/4" EMT conduit, 10 ft stick',
   '4 boxes 12 AWG THHN stranded, black, 500 ft',
@@ -93,6 +90,12 @@ const SAMPLE_TYPED_LIST = [
   '2 ea 100A 3R main lug panel, 20 space',
   '10 ea 3/4 EMT compression connector',
 ].join('\n')
+
+/** Attached files for #/inbox?modal=new&files=1 */
+const SAMPLE_ATTACHMENTS = [
+  { name: 'northgate-q3-restock.pdf', size: '318 KB' },
+  { name: 'panel-schedule-rev-c.xlsx', size: '54 KB' },
+]
 
 const COLUMNS = [
   { key: 'customer', label: 'Customer', width: 'w-[13%]', sortable: true },
@@ -127,23 +130,26 @@ const TABS = [
   { key: 'In Progress', label: 'In Progress' },
 ]
 
-const SPLIT_GROUP_ID = 'g-77301'
-
 let manualSeq = 0
 
-/** A row for an order a rep typed in by hand — no customer match yet. */
-function makeManualRow(text) {
+/** A row for an order a rep typed in or attached by hand — no customer match yet. */
+function makeManualRow(text, files = []) {
   const parsed = (text ?? '')
     .split('\n')
     .map((l) => l.trim())
     .filter(Boolean).length
+  const attached = files.length
   return {
     id: `req-manual-${++manualSeq}`,
     manual: true,
     customer: null,
     contact: null,
     branches: [],
-    subject: 'Manually created order',
+    // Name the row after the file when that is all the rep gave us — a queue of
+    // rows all reading "Manually created order" is impossible to scan.
+    subject: parsed === 0 && attached ? files[0].name : 'Manually created order',
+    attachment: attached ? files[0].name : undefined,
+    source: attached && parsed === 0 ? 'pdf' : 'manual',
     status: 'New',
     user: null,
     orderNumber: null,
@@ -151,7 +157,6 @@ function makeManualRow(text) {
     date: 'Just now',
     time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
     lines: parsed || 6,
-    source: 'manual',
     unread: true,
   }
 }
@@ -167,14 +172,12 @@ export default function Inbox({ params, navigate }) {
   const [rows, setRows] = useState(() =>
     p.processing === '1' ? [makeManualRow(), ...requests] : requests,
   )
-  const [selected, setSelected] = useState(
-    () => new Set(p.split === '1' ? requests.filter((r) => r.splitGroup === SPLIT_GROUP_ID).map((r) => r.id) : []),
-  )
+  const [selected, setSelected] = useState(() => new Set())
   const [sort, setSort] = useState({ key: 'date', dir: 'desc' })
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState('all')
   const [bannerOpen, setBannerOpen] = useState(p.banner !== '0')
-  const [typeListOpen, setTypeListOpen] = useState(p.modal === 'typelist')
+  const [newOrderOpen, setNewOrderOpen] = useState(p.modal === 'new')
   const [flashId, setFlashId] = useState(null)
   const [copied, copy] = useCopy()
 
@@ -193,13 +196,8 @@ export default function Inbox({ params, navigate }) {
   // URL-driven states stay in sync when the hash changes without a remount.
   useEffect(() => setBannerOpen(p.banner !== '0'), [p.banner])
   useEffect(() => {
-    if (p.modal === 'typelist') setTypeListOpen(true)
+    if (p.modal === 'new') setNewOrderOpen(true)
   }, [p.modal])
-  useEffect(() => {
-    if (p.split === '1') {
-      setSelected(new Set(requests.filter((r) => r.splitGroup === SPLIT_GROUP_ID).map((r) => r.id)))
-    }
-  }, [p.split])
 
   // ?processing=1 — mount with the typed-list row already in the queue.
   useEffect(() => {
@@ -276,17 +274,11 @@ export default function Inbox({ params, navigate }) {
   }, [rows, query, tab, sort])
 
   const selectedRows = useMemo(() => rows.filter((r) => selected.has(r.id)), [rows, selected])
-  const selectionGroup = useMemo(() => {
-    if (selectedRows.length < 2) return null
-    const g = selectedRows[0].splitGroup
-    return g && selectedRows.every((r) => r.splitGroup === g) ? g : null
-  }, [selectedRows])
 
   const allChecked = visible.length > 0 && visible.every((r) => selected.has(r.id))
   const someChecked = visible.some((r) => selected.has(r.id))
 
   const firstNewId = visible.find((r) => r.status === 'New')?.id
-  const firstSplitId = visible.find((r) => r.splitGroup)?.id
   const tipsOn = p.tips === '1'
 
   /* --------------------------------------------------------------- mutations */
@@ -385,49 +377,6 @@ export default function Inbox({ params, navigate }) {
     [patchRow, toast],
   )
 
-  /** Screen 4 — merge the checked splits back into the request they came from. */
-  const unsplit = useCallback(() => {
-    if (!selectionGroup) return
-    const ids = new Set(selectedRows.map((r) => r.id))
-    const prevRows = rows
-    const prevSelected = selected
-    const base = selectedRows[0]
-    const merged = {
-      ...base,
-      id: `merged-${selectionGroup}`,
-      poNumber: base.poNumber.replace(/-\d+$/, ''),
-      orderNumber: selectedRows.find((r) => r.orderNumber)?.orderNumber ?? null,
-      lines: selectedRows.reduce((n, r) => n + r.lines, 0),
-      status: 'In Progress',
-      splitGroup: undefined,
-      splitIndex: undefined,
-      splitTotal: undefined,
-      unread: false,
-    }
-    let placed = false
-    const next = []
-    for (const r of rows) {
-      if (!ids.has(r.id)) {
-        next.push(r)
-        continue
-      }
-      if (!placed) {
-        next.push(merged)
-        placed = true
-      }
-    }
-    setRows(next)
-    setSelected(new Set())
-    flash(merged.id)
-    toast.success(`${selectedRows.length} quotes merged back into one request`, {
-      onUndo: () => {
-        setRows(prevRows)
-        setSelected(prevSelected)
-        setFlashId(null)
-      },
-    })
-  }, [flash, rows, selected, selectedRows, selectionGroup, toast])
-
   const assignSelected = useCallback(() => {
     const prevRows = rows
     const ids = new Set(selectedRows.map((r) => r.id))
@@ -443,20 +392,22 @@ export default function Inbox({ params, navigate }) {
     })
   }, [rows, selectedRows, toast])
 
-  /* -------------------------------------------------------- type-list wiring */
+  /* ------------------------------------------------------- new-order wiring */
 
-  const handleTypeListSubmit = useCallback(
-    (text) => {
-      setTypeListOpen(false)
-      const row = makeManualRow(text)
+  const handleNewOrderSubmit = useCallback(
+    ({ text, files }) => {
+      setNewOrderOpen(false)
+      const row = makeManualRow(text, files)
       setRows((rs) => [row, ...rs])
       setQuery('')
       setTab('all')
       setSort({ key: 'date', dir: 'desc' })
       flash(row.id)
+      // The expanded toast names what is being parsed, so a rep who attached a
+      // takeoff sees the filename rather than a generic "manually created".
       toast.processing(
         'Processing 1 order',
-        [{ label: 'Manually created order', startedAt: Date.now() }],
+        [{ label: row.subject, startedAt: Date.now() }],
         { defaultExpanded: true },
       )
     },
@@ -499,11 +450,11 @@ export default function Inbox({ params, navigate }) {
           </div>
 
           <div className="ml-auto flex shrink-0 items-center gap-3">
-            <Button variant="link" size="sm" icon={Upload}>
-              Upload files
-            </Button>
-            <Button variant="link" size="sm" icon={ListPlus} onClick={() => setTypeListOpen(true)}>
-              Type list
+            {/* One entry point for typed text and attachments alike — the two
+                used to be separate links, but an order usually arrives as both
+                a short note and the customer's file. */}
+            <Button variant="link" size="sm" icon={FilePlus} onClick={() => setNewOrderOpen(true)}>
+              Add an order
             </Button>
             <Button variant="link" size="sm" icon={History}>
               Email history
@@ -588,7 +539,7 @@ export default function Inbox({ params, navigate }) {
         </div>
       </div>
 
-      {/* ------------------------------------------- Screen 4 — selection bar */}
+      {/* --------------------------------------------------- selection bar */}
       {selectedRows.length >= 2 && (
         <div className="shrink-0 px-5 pb-3">
           <div className="animate-in-up flex items-center gap-3 rounded-xl border border-brand-200 bg-white px-3 py-2.5 shadow-panel">
@@ -597,27 +548,10 @@ export default function Inbox({ params, navigate }) {
             </span>
             <span className="h-4 w-px shrink-0 bg-ink-200" />
             <p className="min-w-0 truncate text-[12px] text-ink-500">
-              {selectionGroup
-                ? 'These quotes came from one request and can be merged back into a single order.'
-                : 'Assign or archive these together — unsplitting only applies to quotes from one request.'}
+              Assign or archive these together.
             </p>
             <div className="ml-auto flex shrink-0 items-center gap-2">
-              {selectionGroup ? (
-                <Button variant="primary" size="sm" icon={Merge} onClick={unsplit}>
-                  Unsplit
-                </Button>
-              ) : (
-                <Tooltip
-                  content="Only quotes split from the same request can be unsplit."
-                  side="top"
-                  width="w-56"
-                >
-                  <Button variant="primary" size="sm" icon={Merge} disabled>
-                    Unsplit
-                  </Button>
-                </Tooltip>
-              )}
-              <Button size="sm" icon={UserCheck} onClick={assignSelected}>
+              <Button variant="primary" size="sm" icon={UserCheck} onClick={assignSelected}>
                 Assign
               </Button>
               <Button
@@ -720,16 +654,10 @@ export default function Inbox({ params, navigate }) {
                     checked={selected.has(r.id)}
                     flashing={flashId === r.id}
                     forceStatusTip={tipsOn && r.id === firstNewId}
-                    forceSplitTip={tipsOn && r.id === firstSplitId}
                     onToggle={() => toggleRow(r.id)}
                     onOpen={() => navigate('order')}
                     onAssign={() => assignToMe(r)}
                     onProgress={() => markInProgress(r)}
-                    onSplit={() =>
-                      toast.info('Split from inside the request', {
-                        description: 'Open it and pick which lines go on each quote.',
-                      })
-                    }
                     onArchive={() => archiveRows([r.id], 'Request archived')}
                     onSetCustomer={(match) => setCustomer(r, match)}
                   />
@@ -775,12 +703,13 @@ export default function Inbox({ params, navigate }) {
         </Card>
       </div>
 
-      <TypeListModal
-        open={typeListOpen}
-        onClose={() => setTypeListOpen(false)}
-        onSubmit={handleTypeListSubmit}
+      <NewOrderModal
+        open={newOrderOpen}
+        onClose={() => setNewOrderOpen(false)}
+        onSubmit={handleNewOrderSubmit}
         defaultError={p.error === '1'}
         defaultText={p.filled === '1' ? SAMPLE_TYPED_LIST : ''}
+        defaultFiles={p.files === '1' ? SAMPLE_ATTACHMENTS : []}
       />
     </>
   )
@@ -793,12 +722,10 @@ function Row({
   checked,
   flashing,
   forceStatusTip,
-  forceSplitTip,
   onToggle,
   onOpen,
   onAssign,
   onProgress,
-  onSplit,
   onArchive,
   onSetCustomer,
 }) {
@@ -905,31 +832,6 @@ function Row({
             <SourceIcon className="size-3.5 shrink-0 text-ink-400" strokeWidth={2} />
           </Tooltip>
           <span className="truncate text-[13px] text-ink-700">{r.subject}</span>
-          {r.splitGroup && (
-            <span className="shrink-0" onClick={(e) => e.stopPropagation()}>
-              <Popover
-                open={forceSplitTip || undefined}
-                width="w-80"
-                content={
-                  <>
-                    <span className="mb-1 block text-[12px] font-semibold text-ink-900">
-                      {SPLIT_HELP.title}
-                      {r.splitIndex ? (
-                        <span className="ml-1.5 font-normal text-ink-400">
-                          Quote {r.splitIndex} of {r.splitTotal}
-                        </span>
-                      ) : null}
-                    </span>
-                    {SPLIT_HELP.body}
-                  </>
-                }
-              >
-                <Badge tone="violet" icon={Split} className="cursor-default">
-                  Split quote
-                </Badge>
-              </Popover>
-            </span>
-          )}
         </div>
       </td>
 
@@ -1006,7 +908,6 @@ function Row({
           onOpen={onOpen}
           onAssign={onAssign}
           onProgress={onProgress}
-          onSplit={onSplit}
           onArchive={onArchive}
         />
       </td>
@@ -1018,7 +919,7 @@ function Row({
  * "⋮" row menu. Hidden until the row is hovered, but pinned visible for as long
  * as the menu itself is open.
  */
-function RowMenu({ row, onOpen, onAssign, onProgress, onSplit, onArchive }) {
+function RowMenu({ row, onOpen, onAssign, onProgress, onArchive }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   useOnClickOutside(ref, () => setOpen(false))
@@ -1053,7 +954,6 @@ function RowMenu({ row, onOpen, onAssign, onProgress, onSplit, onArchive }) {
           { label: 'Open', icon: ExternalLink, onClick: run(onOpen) },
           { label: 'Assign to me', icon: UserCheck, onClick: run(onAssign) },
           { label: 'Mark as in progress', icon: Clock, onClick: run(onProgress) },
-          { label: 'Split quote', icon: Split, onClick: run(onSplit) },
           '-',
           { label: 'Archive', icon: Archive, danger: true, onClick: run(onArchive) },
         ]}

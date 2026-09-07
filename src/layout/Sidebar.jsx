@@ -1,18 +1,9 @@
 import React from 'react'
-import {
-  ChevronsLeft,
-  ChevronsRight,
-  Inbox,
-  Zap,
-  PackageSearch,
-  Settings as SettingsIcon,
-} from 'lucide-react'
+import { ChevronsLeft, ChevronsRight, Inbox, Settings as SettingsIcon } from 'lucide-react'
 import { cx, Tooltip } from '../ui/primitives.jsx'
 
 export const NAV = [
   { key: 'inbox', label: 'Sales', icon: Inbox, hint: 'The request queue' },
-  { key: 'asap', label: 'ASAP Customer Forms', icon: Zap, hint: 'Self-serve order forms' },
-  { key: 'products', label: 'Product Search', icon: PackageSearch, hint: 'Catalog + live stock' },
   { key: 'settings', label: 'Settings', icon: SettingsIcon, hint: 'Account & integrations' },
 ]
 
@@ -33,7 +24,7 @@ export function Logo({ collapsed }) {
       </div>
       {!collapsed && (
         <span className="truncate text-[15px] font-semibold tracking-[-0.01em] text-ink-900">
-          Supplai
+          Solder
         </span>
       )}
     </div>

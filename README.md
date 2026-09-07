@@ -1,4 +1,4 @@
-# Supplai — Order Desk UI
+# Solder — Order Desk UI
 
 High-fidelity, **working** mockups for a B2B order desk: the internal tool distributor
 sales/ops staff use to turn incoming purchase and quote requests — arriving by email, PDF,
@@ -6,9 +6,9 @@ or phone — into priced, validated sales orders. An AI matching layer suggests 
 products for each requested line; this UI displays and lets a rep confirm that output.
 
 Built as a real React app rather than static images so every interactive state is
-clickable: hover a status pill, expand the delivery section, select a candidate and undo it
-from the toast, watch the Create Quote button flip from disabled to enabled as the last
-line gets matched.
+clickable: hover a status pill, expand the delivery section, pick a suggested product and
+undo it from the toast, watch the Create Quote button flip from disabled to enabled as the
+last line gets matched.
 
 **Live demo → https://sammyq724.github.io/MVP_SUPPLAI/**
 
@@ -36,23 +36,24 @@ npm run dev          # http://127.0.0.1:5173
 Rendered PNGs of every state are checked into [`mockups/`](mockups). To regenerate them:
 
 ```bash
-npm run shots        # build → preview → screenshot all 16 states into ./mockups
+npm run shots        # build → preview → screenshot all 14 states into ./mockups
 ```
 
 The harness fails loudly: any console error, React warning, or failed request on a
-screen marks that shot `✗`. All sixteen currently pass clean.
+screen marks that shot `✗`. All fourteen currently pass clean.
 
 ## Screens
 
 | # | Screen | Route |
 |---|--------|-------|
-| 1 | Request Queue (home) | `#/inbox` |
-| 2 | "Type List" modal | `#/inbox?modal=typelist` |
+| 1 | Sales — the request queue (home) | `#/inbox` |
+| 2 | "New order" modal — text and/or files | `#/inbox?modal=new` |
 | 3 | Request / Order Detail | `#/order` |
-| 4 | Split-quote rows + Unsplit | `#/inbox?split=1` |
-| — | ASAP Customer Forms | `#/asap` |
-| — | Product Search | `#/products` |
-| — | Settings | `#/settings` |
+| 4 | Settings | `#/settings` |
+
+Two sections, Sales and Settings. Orders arrive by email, by attachment, over the phone, or
+typed in by a rep — the "New order" modal takes typed text and file attachments together,
+since an off-channel order is usually a short note *plus* the customer's takeoff.
 
 ### Every interactive state is addressable by URL
 
@@ -64,16 +65,17 @@ clicked into.
 | State | Route |
 |---|---|
 | Default (14 rows, connect-inbox banner shown) | `#/inbox` |
-| Status + split-quote tooltips forced open | `#/inbox?tips=1` |
+| Status tooltip forced open | `#/inbox?tips=1` |
 | Banner dismissed | `#/inbox?banner=0` |
 
-**Screen 2 — Type List modal**
+**Screen 2 — New order modal**
 
 | State | Route |
 |---|---|
-| Empty — Submit disabled | `#/inbox?modal=typelist` |
-| Submitted empty — "Please fill out this field" | `#/inbox?modal=typelist&error=1` |
-| Text entered — Submit enabled | `#/inbox?modal=typelist&filled=1` |
+| Empty — Submit disabled | `#/inbox?modal=new` |
+| Submitted empty — "Please fill out this field" | `#/inbox?modal=new&error=1` |
+| Text entered — Submit enabled | `#/inbox?modal=new&filled=1` |
+| Files attached, no text — Submit still enabled | `#/inbox?modal=new&files=1` |
 | After submit — processing toast + new queue row | `#/inbox?processing=1` |
 
 **Screen 3 — Order Detail**
@@ -85,13 +87,7 @@ clicked into.
 | Create Quote dropdown open (4 options) | `#/order?state=resolved&menu=create` |
 | Attachment tab — document rendered inline with zoom | `#/order?tab=document` |
 | Delivery address + instructions expanded | `#/order?delivery=1` |
-| "Show more" candidates expanded (up to 10) | `#/order?more=li-4` |
-
-**Screen 4 — Split quotes**
-
-| State | Route |
-|---|---|
-| Three related split rows checked, Unsplit action bar | `#/inbox?split=1` |
+| "Show more" suggestions expanded (up to 10) | `#/order?more=li-4` |
 
 ## Design language
 
@@ -101,7 +97,9 @@ clicked into.
   blocking warnings.
 - **Density first** on tables and line-item lists; whitespace is spent on headers and empty
   states, not on rows.
-- **Small pills and badges** for status, tags, branches, and match confidence.
+- **Small pills and badges** for status, branches, and line state — but *not* for match
+  confidence: suggested products carry no "exact / close / alternate" labels, so the rep
+  reads SKU, description, stock and price instead of a colour.
 - **Toasts** stack in the bottom-right, carry an Undo link where the action is reversible,
   and the processing toast is collapsible with a live elapsed-time counter.
 - **`?` help tips** next to any field whose meaning isn't obvious — price branch vs. ship
@@ -116,24 +114,24 @@ Tokens live in `src/index.css`; the primitives that enforce them live in `src/ui
 src/
   App.jsx                 hash router + route/state contract
   index.css               design tokens (brand/ink ramps, shadows, motion)
-  layout/Sidebar.jsx      collapsible nav — Sales, ASAP Forms, Product Search, Settings
+  layout/Sidebar.jsx      collapsible nav — Sales, Settings
   ui/
     primitives.jsx        Button, SplitButton, Menu, Badge, StatusPill, Tooltip, HelpTip,
-                          Popover, Checkbox, Toggle, TextInput, Select, Field, Chip,
+                          Checkbox, Toggle, TextInput, Select, Field, Chip,
                           Card, Panel, Modal, Pagination
     toast.jsx             stacking toasts, Undo, collapsible processing toast
     ProductThumb.jsx      SVG catalog thumbnails (no binary assets)
   data/
-    queue.js              14 queue rows incl. a 3-row split-quote group
+    queue.js              14 queue rows
     order.js              email thread, PDF takeoff, header data, 6 parsed lines
-                          with ranked AI candidates
+                          with ranked AI product suggestions
   screens/
-    Inbox.jsx             Screens 1 + 4
-    TypeListModal.jsx     Screen 2
+    Inbox.jsx             Screen 1
+    NewOrderModal.jsx     Screen 2 — typed text + file attachments
     OrderDetail.jsx       Screen 3 container — owns all shared line-item state
     order/                TopBar, SourcePane, QuoteToPanel, ShipToPanel,
                           OrderMetaPanel, ProductsSection, LineItemBlock, SummaryBar
-    AsapForms.jsx  ProductSearch.jsx  Settings.jsx
+    Settings.jsx          Screen 4
 ```
 
 All data is mock data. There is no backend, no network call, and no binary asset —
