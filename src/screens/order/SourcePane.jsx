@@ -27,7 +27,7 @@ const addr = (p) => `${p.name} <${p.email}>`
  * email body, and the attached takeoff rendered inline so the rep never has to
  * leave the app to check a line.
  */
-export default function SourcePane({ initialTab = 'email' }) {
+export default function SourcePane({ initialTab = 'email', traceId, onTrace }) {
   const toast = useToast()
   const [tab, setTab] = useState(initialTab)
   useEffect(() => setTab(initialTab), [initialTab])
@@ -61,9 +61,20 @@ export default function SourcePane({ initialTab = 'email' }) {
       </div>
 
       {tab === 'email' ? (
-        <EmailTab file={file} onOpenDoc={() => setTab('document')} onDownload={download} />
+        <EmailTab
+          file={file}
+          onOpenDoc={() => setTab('document')}
+          onDownload={download}
+          traceId={traceId}
+          onTrace={onTrace}
+        />
       ) : (
-        <DocumentTab pages={file.pages} onDownload={download} />
+        <DocumentTab
+          pages={file.pages}
+          onDownload={download}
+          traceId={traceId}
+          onTrace={onTrace}
+        />
       )}
     </section>
   )
@@ -98,10 +109,10 @@ function Tab({ icon: Icon, label, meta, active, onClick }) {
 
 /* -------------------------------------------------------------- email tab */
 
-function EmailTab({ file, onOpenDoc, onDownload }) {
+function EmailTab({ file, onOpenDoc, onDownload, traceId, onTrace }) {
   const { from, to, cc, subject, date, body } = emailThread
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+    <div data-scroll="source" className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
       <div className="flex items-start gap-3">
         <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[12px] font-semibold text-brand-700">
           {initials(from.name)}
@@ -144,10 +155,12 @@ function EmailTab({ file, onOpenDoc, onDownload }) {
               className="mt-3 space-y-1 rounded-lg border border-ink-200 bg-ink-50 px-4 py-3"
             >
               {block.list.map((line) => (
-                <li key={line} className="flex gap-2 font-mono text-[12px] leading-5 text-ink-700">
-                  <span className="shrink-0 text-ink-400 select-none">–</span>
-                  <span className="min-w-0">{line}</span>
-                </li>
+                <SourceLine
+                  key={line.lineId ?? line}
+                  line={line}
+                  traceId={traceId}
+                  onTrace={onTrace}
+                />
               ))}
             </ul>
           ),
@@ -180,9 +193,41 @@ function EmailTab({ file, onOpenDoc, onDownload }) {
   )
 }
 
+/**
+ * One line of the customer's list, tied to the item it was parsed into. Hovering
+ * either side draws the connector, so provenance is checkable in both
+ * directions rather than only from the builder.
+ */
+function SourceLine({ line, traceId, onTrace }) {
+  // Tolerate a plain string, so a body block without provenance still renders.
+  const text = typeof line === 'string' ? line : line.text
+  const lineId = typeof line === 'string' ? null : line.lineId
+  const active = lineId && traceId === lineId
+
+  return (
+    <li className="flex gap-2 font-mono text-[12px] leading-5 text-ink-700">
+      <span className="shrink-0 text-ink-400 select-none">–</span>
+      <span
+        data-source-line={lineId ?? undefined}
+        onMouseEnter={lineId ? () => onTrace?.(lineId) : undefined}
+        onMouseLeave={lineId ? () => onTrace?.(null) : undefined}
+        className={cx(
+          'min-w-0 rounded-[3px] transition-colors',
+          lineId && 'cursor-default',
+          active
+            ? '-mx-1 bg-white px-1 ring-1 ring-brand-500'
+            : lineId && 'hover:bg-brand-50/70',
+        )}
+      >
+        {text}
+      </span>
+    </li>
+  )
+}
+
 /* ----------------------------------------------------------- document tab */
 
-function DocumentTab({ pages, onDownload }) {
+function DocumentTab({ pages, onDownload, traceId, onTrace }) {
   const [pct, setPct] = useState(100)
   const page = documentPages[0]
   const clamp = (v) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, v))
@@ -236,7 +281,7 @@ function DocumentTab({ pages, onDownload }) {
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-auto bg-ink-200/60 p-5">
+      <div data-scroll="source" className="min-h-0 flex-1 overflow-auto bg-ink-200/60 p-5">
         <div
           className="mx-auto w-full max-w-[46rem] bg-white p-8 shadow-lg ring-1 ring-ink-300"
           style={{ zoom: pct / 100 }}
@@ -293,8 +338,17 @@ function DocumentTab({ pages, onDownload }) {
                 </tr>
               </thead>
               <tbody>
-                {page.rows.map(([n, description, qty, uom]) => (
-                  <tr key={n} className="border-b border-ink-200">
+                {page.rows.map(({ lineId, cells: [n, description, qty, uom] }) => (
+                  <tr
+                    key={n}
+                    data-source-line={lineId}
+                    onMouseEnter={() => onTrace?.(lineId)}
+                    onMouseLeave={() => onTrace?.(null)}
+                    className={cx(
+                      'cursor-default border-b border-ink-200 transition-colors',
+                      traceId === lineId && 'bg-brand-50',
+                    )}
+                  >
                     <td className="nums py-1.5 align-top text-[12px] text-ink-500">{n}</td>
                     <td className="py-1.5 align-top text-[12px] leading-5 text-ink-900">
                       {description}

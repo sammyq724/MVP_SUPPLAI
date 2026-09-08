@@ -50,6 +50,8 @@ export default function ProductsSection({
   onPickFromCatalog,
   findOpenFor,
   findGroupBy,
+  traceId,
+  onTrace,
   checked,
   onCheck,
   openOnly,
@@ -268,6 +270,8 @@ export default function ProductsSection({
           onPickFromCatalog={onPickFromCatalog}
           defaultFindOpen={findOpenFor === li.id}
           defaultFindGroupBy={findGroupBy}
+          traced={traceId === li.id}
+          onTrace={onTrace}
           selectedId={selections[li.id]}
           onSelect={onSelect}
           qtys={qtys}

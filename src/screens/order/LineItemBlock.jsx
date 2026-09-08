@@ -191,6 +191,8 @@ export default function LineItemBlock({
   checked,
   onCheck,
   onPickFromCatalog,
+  traced,
+  onTrace,
   defaultFindOpen = false,
   defaultFindGroupBy = null,
 }) {
@@ -228,7 +230,19 @@ export default function LineItemBlock({
   ]
 
   return (
-    <Card className={cx('mt-2 overflow-hidden', unresolved && 'ring-1 ring-amber-300')}>
+    <Card
+      data-line-block={li.id}
+      onMouseEnter={() => onTrace?.(li.id)}
+      onMouseLeave={() => onTrace?.(null)}
+      className={cx(
+        'mt-2 overflow-hidden',
+        // The trace ring wins over the outstanding ring while active, so the
+        // connector's two ends read as one highlighted pair.
+        traced
+          ? 'ring-2 ring-brand-500'
+          : unresolved && 'ring-1 ring-amber-300',
+      )}
+    >
       <div className={cx(unresolved && 'bg-amber-50/30')}>
         {/* ------------------------------------------------------------ header */}
         <div className="flex items-start gap-3 px-3 py-2.5">

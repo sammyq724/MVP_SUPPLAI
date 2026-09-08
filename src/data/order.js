@@ -2,6 +2,10 @@
  * The working order behind Screen 3 — source document, header data, and the
  * parsed line items with the AI layer's suggested product matches.
  *
+ * Source lines — both the email's list and the takeoff's rows — carry the
+ * `lineId` they were parsed into, which is what lets the UI draw a connector
+ * from the customer's own words to the item matched against them.
+ *
  * Line items carry `requested` (the customer's literal words), `qty` (what we
  * will actually order — may be rounded up to a sellable multiple), and up to 10
  * ranked candidates. `selected` is null until a rep picks one.
@@ -78,14 +82,16 @@ export const emailThread = {
     'Hi team,',
     'We are starting phase 2 rough-in at Riverbend Tower next Thursday and need pricing on the list below. Same job as the phase 1 order back in June — please use the Katy branch for stock since that is closer to the site.',
     'LIST:',
-    { list: [
-      '1½" PVC conduit — 400 ft',
-      '1½" PVC male adapters — 60 ea',
-      '#10 THHN stranded, black — 2500 ft',
-      '4-11/16" square boxes, 2-1/8" deep — 45',
-      '1-5/8" strut, 12 ga slotted — 240 ft',
-      '3/8" strut clamps for 1½" conduit — 150',
-    ] },
+    {
+      list: [
+        { lineId: 'li-1', text: '1½" PVC conduit — 400 ft' },
+        { lineId: 'li-2', text: '1½" PVC male adapters — 60 ea' },
+        { lineId: 'li-3', text: '#10 THHN stranded, black — 2500 ft' },
+        { lineId: 'li-4', text: '4-11/16" square boxes, 2-1/8" deep — 45' },
+        { lineId: 'li-5', text: '1-5/8" strut, 12 ga slotted — 240 ft' },
+        { lineId: 'li-6', text: '3/8" strut clamps for 1½" conduit — 150' },
+      ],
+    },
     'Please quote delivered to the site, Gate 4. We need it on the ground by Thursday morning — if anything is short, let me know and we will pull it from another branch.',
     'Also: PO-88412 is open for this. Bill to the Wingate office as usual.',
     'Thanks,\nDana Whitfield\nProject Manager, Brightline Mechanical\n(713) 555-0142',
@@ -103,12 +109,12 @@ export const documentPages = [
       ['PO', 'PO-88412'],
     ],
     rows: [
-      ['1', '1-1/2" PVC conduit, sch 40, belled end', '400', 'FT'],
-      ['2', '1-1/2" PVC male adapter', '60', 'EA'],
-      ['3', '#10 THHN stranded copper, black', '2500', 'FT'],
-      ['4', '4-11/16" sq box, 2-1/8" deep, 1/2-3/4 KO', '45', 'EA'],
-      ['5', '1-5/8" strut, 12 ga, slotted, PG', '240', 'FT'],
-      ['6', '3/8" strut pipe clamp for 1-1/2" conduit', '150', 'EA'],
+      { lineId: 'li-1', cells: ['1', '1-1/2" PVC conduit, sch 40, belled end', '400', 'FT'] },
+      { lineId: 'li-2', cells: ['2', '1-1/2" PVC male adapter', '60', 'EA'] },
+      { lineId: 'li-3', cells: ['3', '#10 THHN stranded copper, black', '2500', 'FT'] },
+      { lineId: 'li-4', cells: ['4', '4-11/16" sq box, 2-1/8" deep, 1/2-3/4 KO', '45', 'EA'] },
+      { lineId: 'li-5', cells: ['5', '1-5/8" strut, 12 ga, slotted, PG', '240', 'FT'] },
+      { lineId: 'li-6', cells: ['6', '3/8" strut pipe clamp for 1-1/2" conduit', '150', 'EA'] },
     ],
     note: 'Deliver to Gate 4 laydown yard. Crane window 1:00p–4:00p. Partial shipments acceptable if noted on the packing slip.',
   },

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react'
+import React, { useState, useMemo, useCallback, useEffect } from 'react'
 import TopBar from './order/TopBar.jsx'
 import SourcePane from './order/SourcePane.jsx'
 import QuoteToPanel from './order/QuoteToPanel.jsx'
@@ -6,6 +6,7 @@ import ShipToPanel from './order/ShipToPanel.jsx'
 import OrderMetaPanel from './order/OrderMetaPanel.jsx'
 import ProductsSection from './order/ProductsSection.jsx'
 import SummaryBar from './order/SummaryBar.jsx'
+import TraceConnector from './order/TraceConnector.jsx'
 import { lineItems, moreCandidates, order } from '../data/order.js'
 import { useToast } from '../ui/toast.jsx'
 
@@ -38,6 +39,33 @@ export default function OrderDetail({ params, navigate }) {
   const [search, setSearch] = useState('')
   const [highlightOutstanding, setHighlightOutstanding] = useState(false)
   const [deliveryOpen, setDeliveryOpen] = useState(params.delivery === '1')
+
+  // Which line is currently being traced back to the customer's own words.
+  // Hovering either end sets it; the connector reads it to pick its endpoints.
+  const [traceId, setTraceId] = useState(params.trace ?? null)
+  const trace = useCallback((id) => setTraceId(id ?? (params.trace ?? null)), [params.trace])
+
+  // A ?trace= deep link should land on both ends, not depend on whichever
+  // scroll position the panes happened to open at. Hover-driven traces are
+  // left alone — scrolling out from under the cursor would be hostile.
+  useEffect(() => {
+    if (!params.trace) return
+    // Adjust only the pane that owns each end. scrollIntoView walks the whole
+    // ancestor chain and will scroll the app shell too, clipping the top bar.
+    const centerInPane = (elSel, paneSel) => {
+      const el = document.querySelector(elSel)
+      const pane = document.querySelector(paneSel)
+      if (!el || !pane) return
+      const e = el.getBoundingClientRect()
+      const p = pane.getBoundingClientRect()
+      pane.scrollTop += e.top + e.height / 2 - (p.top + p.height / 2)
+    }
+    const id = requestAnimationFrame(() => {
+      centerInPane(`[data-source-line="${params.trace}"]`, '[data-scroll="source"]')
+      centerInPane(`[data-line-block="${params.trace}"]`, '[data-scroll="builder"]')
+    })
+    return () => cancelAnimationFrame(id)
+  }, [params.trace, params.tab])
 
   // Items pulled out of the Find Item lookup, per line. They sit above the
   // suggested matches so the rep's own choice is the first thing they see.
@@ -167,10 +195,14 @@ export default function OrderDetail({ params, navigate }) {
       />
 
       <div className="flex min-h-0 flex-1">
-        <SourcePane initialTab={params.tab === 'document' ? 'document' : 'email'} />
+        <SourcePane
+          initialTab={params.tab === 'document' ? 'document' : 'email'}
+          traceId={traceId}
+          onTrace={trace}
+        />
 
         <section className="relative flex min-w-0 flex-1 flex-col bg-ink-100">
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-40">
+          <div data-scroll="builder" className="min-h-0 flex-1 overflow-y-auto px-5 pt-4 pb-40">
             <div className="grid grid-cols-1 items-start gap-3 xl:grid-cols-3">
               <QuoteToPanel />
               {/* Ship To takes the full row while the delivery form is open — a
@@ -199,6 +231,8 @@ export default function OrderDetail({ params, navigate }) {
               onPickFromCatalog={pickFromCatalog}
               findOpenFor={params.find ?? null}
               findGroupBy={params.group ?? null}
+              traceId={traceId}
+              onTrace={trace}
               checked={checked}
               onCheck={setChecked}
               openOnly={openOnly}
@@ -224,6 +258,8 @@ export default function OrderDetail({ params, navigate }) {
           />
         </section>
       </div>
+
+      <TraceConnector lineId={traceId} />
     </>
   )
 }

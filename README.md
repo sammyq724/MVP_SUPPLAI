@@ -36,11 +36,11 @@ npm run dev          # http://127.0.0.1:5173
 Rendered PNGs of every state are checked into [`mockups/`](mockups). To regenerate them:
 
 ```bash
-npm run shots        # build → preview → screenshot all 16 states into ./mockups
+npm run shots        # build → preview → screenshot all 18 states into ./mockups
 ```
 
 The harness fails loudly: any console error, React warning, or failed request on a
-screen marks that shot `✗`. All sixteen currently pass clean.
+screen marks that shot `✗`. All eighteen currently pass clean.
 
 ## Screens
 
@@ -88,8 +88,21 @@ clicked into.
 | Attachment tab — document rendered inline with zoom | `#/order?tab=document` |
 | Delivery address + instructions expanded | `#/order?delivery=1` |
 | "Show more" suggestions expanded (up to 10) | `#/order?more=li-4` |
+| Provenance connector, email → matched item | `#/order?trace=li-1` |
+| Provenance connector from the takeoff row | `#/order?trace=li-3&tab=document` |
 | Find Item lookup open for a line | `#/order?find=li-4` |
 | Find Item grouped by a column | `#/order?find=li-4&group=productType` |
+
+### Provenance connector
+
+Hovering a line item — or the customer's own words on the left — draws a line between
+the two, boxing the source text and ringing the matched card. It answers the question a
+rep actually has in front of an AI-parsed order: *where did this line come from?*
+
+It works on both source tabs (the email's list and the takeoff's rows), in both
+directions, and drops out rather than lying when either end scrolls out of its pane. A
+`?trace=` deep link centres both ends first, so the link doesn't depend on wherever the
+panes happened to open.
 
 ### Find Item
 
@@ -155,7 +168,7 @@ src/
     OrderDetail.jsx       Screen 3 container — owns all shared line-item state
     order/                TopBar, SourcePane, QuoteToPanel, ShipToPanel,
                           OrderMetaPanel, ProductsSection, LineItemBlock,
-                          FindItemModal, SummaryBar
+                          FindItemModal, TraceConnector, SummaryBar
     Settings.jsx          Screen 4
 ```
 

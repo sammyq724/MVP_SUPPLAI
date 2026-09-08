@@ -26,6 +26,9 @@ import Settings from './screens/Settings.jsx'
  *     ?delivery=1                   delivery address + instructions expanded
  *     ?more=li-4                    "Show more" candidates expanded for a line
  *     ?menu=create                  Create Quote dropdown open
+ *     ?trace=li-1                   provenance connector: source line → matched item
+ *     ?find=li-4                    Find Item lookup open for a line
+ *     ?find=li-4&group=productType  …grouped by a column
  *   #/settings                    Account, inbox and parsing settings
  */
 function parseHash() {
