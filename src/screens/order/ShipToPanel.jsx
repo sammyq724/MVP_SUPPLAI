@@ -1,24 +1,17 @@
 import React, { useEffect, useState } from 'react'
-import {
-  MapPin,
-  MapPinPlus,
-  Plus,
-  Truck,
-  Info,
-  ChevronRight,
-} from 'lucide-react'
+import { MapPin, MapPinPlus, Plus, Truck, ChevronRight } from 'lucide-react'
 import { Panel, Chip, Field, Select, TextInput, HelpTip, cx } from '../../ui/primitives.jsx'
-import { shipTo, branches, shipViaOptions, deliveryDetail, HELP } from '../../data/order.js'
+import { shipTo, shipViaOptions, deliveryDetail, HELP } from '../../data/order.js'
 import { useToast } from '../../ui/toast.jsx'
 
 /**
- * Screen 3 header, panel 2 — where the goods go, which branches price and pick
- * them, and the collapsed delivery block. Everything the driver and the
- * warehouse need lives behind the "Add delivery address and instructions"
- * toggle so the common case stays one screen tall.
+ * Screen 3 header, panel 2 — where the goods go, and the collapsed delivery
+ * block. Everything the driver and the warehouse need lives behind the "Add
+ * delivery address and instructions" toggle so the common case stays one
+ * screen tall.
  */
 
-/* Options that are branch/carrier config in the real ERP, not order data. */
+/* Options that are carrier/routing config in the real ERP, not order data. */
 const COUNTRIES = ['United States', 'Canada', 'Mexico', 'Puerto Rico']
 const CARRIERS = [
   'Meridian Fleet',
@@ -49,18 +42,10 @@ function AddSlot({ label, onClick }) {
   )
 }
 
-/** "Houston — North (HOU-01)" → ["Houston — North", "HOU-01"] */
-function splitBranch(label) {
-  const m = /^(.*?)\s*\(([^)]+)\)\s*$/.exec(label)
-  return m ? [m[1], m[2]] : [label, null]
-}
-
 export default function ShipToPanel({ defaultDeliveryOpen = false, onDeliveryToggle }) {
   const toast = useToast()
 
   const [hasAddress, setHasAddress] = useState(true)
-  const [hasPriceBranch, setHasPriceBranch] = useState(true)
-  const [hasShipBranch, setHasShipBranch] = useState(true)
   const [shipVia, setShipVia] = useState('')
   const [open, setOpenState] = useState(defaultDeliveryOpen)
   const [d, setD] = useState(deliveryDetail)
@@ -81,13 +66,7 @@ export default function ShipToPanel({ defaultDeliveryOpen = false, onDeliveryTog
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultDeliveryOpen])
 
-  const [priceName, priceCode] = splitBranch(branches.price)
-  const [shipName, shipCode] = splitBranch(branches.ship)
-
   const set = (key) => (e) => setD((prev) => ({ ...prev, [key]: e.target.value }))
-
-  const branchMismatch =
-    hasPriceBranch && hasShipBranch && branches.price !== branches.ship
 
   // Collapsed one-liner so the rep can tell a filled block from an empty one.
   const gate = d.complement ? d.complement.split('—')[0].trim() : ''
@@ -124,52 +103,6 @@ export default function ShipToPanel({ defaultDeliveryOpen = false, onDeliveryTog
             No destination — the order cannot be routed.
           </p>
         </div>
-      )}
-
-      {/* ---------------------------------------------------------- branches */}
-      <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-        <Field label="Price Branch" help={HELP.priceBranch}>
-          {hasPriceBranch ? (
-            <Chip
-              onRemove={() => {
-                setHasPriceBranch(false)
-                toast?.warning('Price branch cleared', { onUndo: () => setHasPriceBranch(true) })
-              }}
-            >
-              {priceName}
-            </Chip>
-          ) : (
-            <AddSlot label="Add branch" onClick={() => setHasPriceBranch(true)} />
-          )}
-          {hasPriceBranch && priceCode && (
-            <p className="nums mt-1 text-[10px] tracking-[0.04em] text-ink-400">{priceCode}</p>
-          )}
-        </Field>
-
-        <Field label="Ship Branch" help={HELP.shipBranch}>
-          {hasShipBranch ? (
-            <Chip
-              onRemove={() => {
-                setHasShipBranch(false)
-                toast?.warning('Ship branch cleared', { onUndo: () => setHasShipBranch(true) })
-              }}
-            >
-              {shipName}
-            </Chip>
-          ) : (
-            <AddSlot label="Add branch" onClick={() => setHasShipBranch(true)} />
-          )}
-          {hasShipBranch && shipCode && (
-            <p className="nums mt-1 text-[10px] tracking-[0.04em] text-ink-400">{shipCode}</p>
-          )}
-        </Field>
-      </div>
-
-      {branchMismatch && (
-        <p className="mt-1.5 flex items-start gap-1 text-[11px] leading-4 text-amber-600">
-          <Info className="mt-px size-3.5 shrink-0" strokeWidth={2} aria-hidden="true" />
-          Shipping from a different branch than pricing.
-        </p>
       )}
 
       {/* ---------------------------------------------------------- ship via */}

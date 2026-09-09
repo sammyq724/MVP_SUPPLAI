@@ -51,9 +51,14 @@ screen marks that shot `✗`. All eighteen currently pass clean.
 | 3 | Request / Order Detail | `#/order` |
 | 4 | Settings | `#/settings` |
 
-Two sections, Sales and Settings. Orders arrive by email, by attachment, over the phone, or
-typed in by a rep — the "New order" modal takes typed text and file attachments together,
-since an off-channel order is usually a short note *plus* the customer's takeoff.
+Two sections, Sales and Settings. Single user, single branch: there is no assignee column,
+no branch selection and no team management, because right now there is one salesman and one
+branch. Orders arrive by email, by attachment, over the phone, or typed in by hand —
+**Build New Quote/PO** takes typed text and file attachments together, since an off-channel
+order is usually a short note *plus* the customer's takeoff.
+
+The queue carries seven columns: Customer (with the contact beneath), Subject, Status, Order
+Number, PO Number, Date and Lines.
 
 ### Every interactive state is addressable by URL
 

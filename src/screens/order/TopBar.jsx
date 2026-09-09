@@ -4,7 +4,6 @@ import {
   ChevronRight,
   ChevronUp,
   ChevronDown,
-  Sparkles,
   MoreVertical,
   Printer,
   Copy,
@@ -80,19 +79,6 @@ export default function TopBar({ subject, date, status, index, total, navigate }
       </span>
 
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
-        <Button
-          variant="secondary"
-          icon={Sparkles}
-          className="border-brand-200! bg-brand-50! text-brand-700! hover:border-brand-300! hover:bg-brand-100!"
-          onClick={() =>
-            toast?.info('Assistant is listening', {
-              description: 'Try: “why was the strut clamp flagged?”',
-            })
-          }
-        >
-          Ask Assistant
-        </Button>
-
         <Menu
           align="right"
           width="w-52"

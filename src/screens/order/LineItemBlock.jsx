@@ -23,7 +23,7 @@ import {
   money,
 } from '../../ui/primitives.jsx'
 import { ProductThumb } from '../../ui/ProductThumb.jsx'
-import { branches, moreCandidates } from '../../data/order.js'
+import { moreCandidates } from '../../data/order.js'
 import { useToast } from '../../ui/toast.jsx'
 import FindItemModal from './FindItemModal.jsx'
 
@@ -57,7 +57,7 @@ function Availability({ avail, want, uom }) {
     return (
       <Tooltip
         side="top"
-        content={`Out of stock at ${branches.ship}. Special order — 3–5 business days from the manufacturer.`}
+        content="Out of stock. Special order — 3–5 business days from the manufacturer."
       >
         <span className="nums text-[12px] font-semibold text-red-600">0</span>
       </Tooltip>
@@ -67,7 +67,7 @@ function Availability({ avail, want, uom }) {
     return (
       <Tooltip
         side="top"
-        content={`Short by ${(want - avail).toLocaleString('en-US')} ${uom} at ${branches.ship}. The balance can transfer from ${branches.price}.`}
+        content={`Short by ${(want - avail).toLocaleString('en-US')} ${uom} on hand. The balance goes on backorder.`}
       >
         <span className="nums text-[12px] font-medium text-amber-600">{label}</span>
       </Tooltip>

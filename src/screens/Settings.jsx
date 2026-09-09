@@ -1,6 +1,5 @@
 import React, { useState, useCallback } from 'react'
 import {
-  Building2,
   Check,
   Copy,
   History,
@@ -11,7 +10,6 @@ import {
   Sparkles,
   TriangleAlert,
   User,
-  Users,
 } from 'lucide-react'
 import {
   Badge,
@@ -33,9 +31,7 @@ import { INBOUND_EMAIL } from '../data/queue.js'
 const SECTIONS = [
   { key: 'account', label: 'Account', icon: User },
   { key: 'email', label: 'Inbox & Email', icon: Mail },
-  { key: 'branches', label: 'Branches', icon: Building2 },
   { key: 'matching', label: 'Matching', icon: Sparkles },
-  { key: 'team', label: 'Team', icon: Users },
   { key: 'integrations', label: 'Integrations', icon: Puzzle },
 ]
 
@@ -46,20 +42,10 @@ const ADMIN_SECTIONS = {
     body: 'Your name, title and reply-to address are synced from Meridian Supply’s directory every night. Ask an admin to change them and the update lands here the next morning.',
     action: 'Open directory',
   },
-  branches: {
-    title: '9 branches synced from Epicor Eclipse',
-    body: 'Branch list, price lists, cut-off times and will-call hours are read-only here. Last sync: Sep 6, 2026 at 5:15 AM — 9 branches, 0 conflicts.',
-    action: 'Run sync now',
-  },
   matching: {
-    title: 'Matching rules affect every rep',
-    body: 'Confidence thresholds, substitution rules and house-brand swaps are shared across the account. Admins can edit them; reps can always override a match on the order itself.',
+    title: 'Matching rules are set on the account',
+    body: 'Confidence thresholds, substitution rules and house-brand swaps are set on the account. Admins can edit them; you can always override a match on the order itself.',
     action: 'Request access',
-  },
-  team: {
-    title: '12 reps, 3 admins on this account',
-    body: 'Seats, roles and account-owner assignments are managed by your admin. Removing a rep reassigns their open requests to the branch queue.',
-    action: 'Invite a rep',
   },
   integrations: {
     title: 'Epicor Eclipse connected',
@@ -84,8 +70,8 @@ export default function Settings({ params, navigate }) {
   const [autoReply, setAutoReply] = useState(true)
   const [outlook, setOutlook] = useState(true)
   const [gmail, setGmail] = useState(false)
-  const [autoAssign, setAutoAssign] = useState(false)
-  const [splitBranches, setSplitBranches] = useState(false)
+  const [autoProgress, setAutoProgress] = useState(false)
+  const [attachSource, setAttachSource] = useState(true)
   const [roundUp, setRoundUp] = useState(true)
 
   const disconnectAll = useCallback(() => {
@@ -199,7 +185,7 @@ export default function Settings({ params, navigate }) {
                       label="Send an auto-reply confirming we received the request"
                     />
                     <p className="mt-1 pl-6 text-[11px] text-ink-400">
-                      Goes out within a minute of parsing and names the rep who owns the account.
+                      Goes out within a minute of parsing and names you as the contact.
                     </p>
                   </div>
                 </Panel>
@@ -273,16 +259,16 @@ export default function Settings({ params, navigate }) {
                 {/* ---------------------------------------- parsing rules */}
                 <Panel title="Parsing rules" bodyClass="p-0!">
                   <RuleRow
-                    title="Auto-assign to the account owner"
-                    description="New requests go straight to the rep who owns the customer instead of sitting unassigned in the queue."
-                    checked={autoAssign}
-                    onChange={setAutoAssign}
+                    title="Mark new requests as in progress on open"
+                    description="Opening a request moves it out of New automatically, so the queue always shows what you have not looked at yet."
+                    checked={autoProgress}
+                    onChange={setAutoProgress}
                   />
                   <RuleRow
-                    title="Split multi-branch requests automatically"
-                    description="When lines have to ship from two yards, create one quote per branch instead of a single mixed quote."
-                    checked={splitBranches}
-                    onChange={setSplitBranches}
+                    title="Attach the source file to the quote"
+                    description="The customer's original email or takeoff rides along with the quote PDF, so the job folder stays complete."
+                    checked={attachSource}
+                    onChange={setAttachSource}
                   />
                   <RuleRow
                     title="Round quantities up to sellable multiples"

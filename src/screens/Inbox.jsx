@@ -16,15 +16,12 @@ import {
   MoreVertical,
   Paperclip,
   Phone,
-  Plus,
   SearchX,
   SlidersHorizontal,
-  UserCheck,
   UserPlus,
   X,
 } from 'lucide-react'
 import {
-  Badge,
   Button,
   Card,
   Checkbox,
@@ -40,20 +37,17 @@ import {
   useOnClickOutside,
 } from '../ui/primitives.jsx'
 import { useToast } from '../ui/toast.jsx'
-import { AVATAR_TONES, INBOUND_EMAIL, STATUS_HELP, requests } from '../data/queue.js'
+import { INBOUND_EMAIL, STATUS_HELP, requests } from '../data/queue.js'
 import NewOrderModal from './NewOrderModal.jsx'
 
 /* ------------------------------------------------------------------ local data */
-
-/** The signed-in rep — used by "Assign to me". */
-const ME = { name: 'Sam Quinn', initials: 'SQ', tone: 'amber' }
 
 /** Where a request came from — drives the small icon next to the subject. */
 const SOURCE_META = {
   email: { icon: Mail, label: 'Received by email' },
   pdf: { icon: Paperclip, label: 'PDF attachment — takeoff parsed' },
-  phone: { icon: Phone, label: 'Phone call — typed up by a rep' },
-  manual: { icon: ListPlus, label: 'Typed list — entered by a rep' },
+  phone: { icon: Phone, label: 'Phone call — typed up by hand' },
+  manual: { icon: ListPlus, label: 'Typed list — entered by hand' },
 }
 
 /** Recently quoted accounts, offered when a request has no customer match. */
@@ -61,24 +55,20 @@ const RECENT_CUSTOMERS = [
   {
     customer: 'Brightline Mechanical',
     contact: 'Dana Whitfield',
-    branches: ['Houston — North', 'Katy Supply'],
   },
   {
     customer: 'Cardinal Electric Co.',
     contact: 'Marcus Oyelaran',
-    branches: ['Dallas — Central', 'Fort Worth'],
   },
   {
     customer: 'Halcyon Plumbing & Heating',
     contact: 'Rob Ferreira',
-    branches: ['Austin — South', 'Round Rock'],
   },
 ]
 
 const PLACEHOLDER_CUSTOMER = {
   customer: 'Placeholder account',
   contact: 'No account on file yet',
-  branches: [],
 }
 
 /** Pre-filled body for #/inbox?modal=new&filled=1 */
@@ -98,26 +88,17 @@ const SAMPLE_ATTACHMENTS = [
 ]
 
 const COLUMNS = [
-  { key: 'customer', label: 'Customer', width: 'w-[13%]', sortable: true },
-  {
-    key: 'branches',
-    label: 'Branches',
-    width: 'w-[10%]',
-    help: 'Branches that can fill these lines. Requests often pull stock from two yards — each branch prices and ships its own portion.',
-  },
-  { key: 'subject', label: 'Subject', width: 'w-[20%]', sortable: true },
-  { key: 'status', label: 'Status', width: 'w-[9.5%]', sortable: true },
-  { key: 'user', label: 'User', width: 'w-[9.5%]', sortable: true },
-  // Widest header label of the lot — narrower than this and "ORDER NUMBER"
-  // spills into the next column at ~1440px.
-  { key: 'orderNumber', label: 'Order Number', width: 'w-[11.5%]', sortable: true },
-  { key: 'poNumber', label: 'PO Number', width: 'w-[8.5%]', sortable: true },
-  { key: 'date', label: 'Date', width: 'w-[7%]', sortable: true },
+  { key: 'customer', label: 'Customer', width: 'w-[20%]', sortable: true },
+  { key: 'subject', label: 'Subject', width: 'w-[32%]', sortable: true },
+  { key: 'status', label: 'Status', width: 'w-[11%]', sortable: true },
+  { key: 'orderNumber', label: 'Order Number', width: 'w-[12%]', sortable: true },
+  { key: 'poNumber', label: 'PO Number', width: 'w-[11%]', sortable: true },
+  { key: 'date', label: 'Date', width: 'w-[9%]', sortable: true },
   {
     key: 'lines',
     label: 'Lines',
     // Narrow data (1–2 digits) but the header + "?" still needs ~52px.
-    width: 'w-[5.5%]',
+    width: 'w-[5%]',
     sortable: true,
     align: 'right',
     help: 'Line items parsed out of the request. A line still counts here even if no product has been matched to it yet.',
@@ -144,14 +125,12 @@ function makeManualRow(text, files = []) {
     manual: true,
     customer: null,
     contact: null,
-    branches: [],
     // Name the row after the file when that is all the rep gave us — a queue of
     // rows all reading "Manually created order" is impossible to scan.
     subject: parsed === 0 && attached ? files[0].name : 'Manually created order',
     attachment: attached ? files[0].name : undefined,
     source: attached && parsed === 0 ? 'pdf' : 'manual',
     status: 'New',
-    user: null,
     orderNumber: null,
     poNumber: '—',
     date: 'Just now',
@@ -249,8 +228,6 @@ export default function Inbox({ params, navigate }) {
           return r.subject.toLowerCase()
         case 'status':
           return r.status
-        case 'user':
-          return (r.user?.name ?? LAST).toLowerCase()
         case 'orderNumber':
           return r.orderNumber ?? LAST
         case 'poNumber':
@@ -317,22 +294,6 @@ export default function Inbox({ params, navigate }) {
     )
   }, [])
 
-  const assignToMe = useCallback(
-    (row) => {
-      const prev = { user: row.user, status: row.status }
-      patchRow(row.id, {
-        user: ME,
-        status: row.status === 'New' ? 'In Progress' : row.status,
-        unread: false,
-      })
-      toast.success('Assigned to you', {
-        description: row.customer ?? row.subject,
-        onUndo: () => patchRow(row.id, prev),
-      })
-    },
-    [patchRow, toast],
-  )
-
   const markInProgress = useCallback(
     (row) => {
       const prev = { status: row.status }
@@ -368,29 +329,14 @@ export default function Inbox({ params, navigate }) {
 
   const setCustomer = useCallback(
     (row, match) => {
-      const prev = { customer: row.customer, contact: row.contact, branches: row.branches }
-      patchRow(row.id, { customer: match.customer, contact: match.contact, branches: match.branches })
+      const prev = { customer: row.customer, contact: row.contact }
+      patchRow(row.id, { customer: match.customer, contact: match.contact })
       toast.success(`Matched to ${match.customer}`, {
         onUndo: () => patchRow(row.id, prev),
       })
     },
     [patchRow, toast],
   )
-
-  const assignSelected = useCallback(() => {
-    const prevRows = rows
-    const ids = new Set(selectedRows.map((r) => r.id))
-    setRows((rs) =>
-      rs.map((r) =>
-        ids.has(r.id)
-          ? { ...r, user: ME, status: r.status === 'New' ? 'In Progress' : r.status, unread: false }
-          : r,
-      ),
-    )
-    toast.success(`${plural(ids.size, 'request')} assigned to you`, {
-      onUndo: () => setRows(prevRows),
-    })
-  }, [rows, selectedRows, toast])
 
   /* ------------------------------------------------------- new-order wiring */
 
@@ -450,18 +396,14 @@ export default function Inbox({ params, navigate }) {
           </div>
 
           <div className="ml-auto flex shrink-0 items-center gap-3">
-            {/* One entry point for typed text and attachments alike — the two
-                used to be separate links, but an order usually arrives as both
-                a short note and the customer's file. */}
-            <Button variant="link" size="sm" icon={FilePlus} onClick={() => setNewOrderOpen(true)}>
-              Add an order
-            </Button>
             <Button variant="link" size="sm" icon={History}>
               Email history
             </Button>
             <span className="mx-1 h-5 w-px bg-ink-200" />
-            <Button variant="primary" icon={Plus} onClick={() => navigate('order')}>
-              Build New Quote
+            {/* The single entry point for anything that did not arrive by email:
+                paste the text, attach the customer's file, or both. */}
+            <Button variant="primary" icon={FilePlus} onClick={() => setNewOrderOpen(true)}>
+              Build New Quote/PO
             </Button>
           </div>
         </div>
@@ -548,13 +490,11 @@ export default function Inbox({ params, navigate }) {
             </span>
             <span className="h-4 w-px shrink-0 bg-ink-200" />
             <p className="min-w-0 truncate text-[12px] text-ink-500">
-              Assign or archive these together.
+              Archive these together, or clear the selection.
             </p>
             <div className="ml-auto flex shrink-0 items-center gap-2">
-              <Button variant="primary" size="sm" icon={UserCheck} onClick={assignSelected}>
-                Assign
-              </Button>
               <Button
+                variant="primary"
                 size="sm"
                 icon={Archive}
                 onClick={() =>
@@ -656,7 +596,6 @@ export default function Inbox({ params, navigate }) {
                     forceStatusTip={tipsOn && r.id === firstNewId}
                     onToggle={() => toggleRow(r.id)}
                     onOpen={() => navigate('order')}
-                    onAssign={() => assignToMe(r)}
                     onProgress={() => markInProgress(r)}
                     onArchive={() => archiveRows([r.id], 'Request archived')}
                     onSetCustomer={(match) => setCustomer(r, match)}
@@ -724,7 +663,6 @@ function Row({
   forceStatusTip,
   onToggle,
   onOpen,
-  onAssign,
   onProgress,
   onArchive,
   onSetCustomer,
@@ -810,21 +748,6 @@ function Row({
         )}
       </td>
 
-      {/* branches */}
-      <td className="px-2 align-middle">
-        {r.branches?.length ? (
-          <div className="flex min-w-0 flex-col items-start gap-0.5">
-            {r.branches.map((b) => (
-              <Badge key={b} tone="slate" className="max-w-full">
-                <span className="truncate">{b}</span>
-              </Badge>
-            ))}
-          </div>
-        ) : (
-          <span className="text-[13px] text-ink-300">—</span>
-        )}
-      </td>
-
       {/* subject */}
       <td className="px-2 align-middle">
         <div className="flex min-w-0 items-center gap-1.5">
@@ -842,30 +765,6 @@ function Row({
           tooltip={STATUS_HELP[r.status]}
           forceTooltip={forceStatusTip}
         />
-      </td>
-
-      {/* user */}
-      <td className="px-2 align-middle">
-        {r.user ? (
-          <div className="flex min-w-0 items-center gap-2">
-            <span
-              className={cx(
-                'flex size-6 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold',
-                AVATAR_TONES[r.user.tone] ?? AVATAR_TONES.blue,
-              )}
-            >
-              {r.user.initials}
-            </span>
-            <span className="truncate text-[12px] text-ink-700">{r.user.name}</span>
-          </div>
-        ) : (
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="flex size-6 shrink-0 items-center justify-center rounded-full border border-dashed border-ink-300 text-ink-400">
-              <UserPlus className="size-3" strokeWidth={2} />
-            </span>
-            <span className="truncate text-[12px] text-ink-400">Unassigned</span>
-          </div>
-        )}
       </td>
 
       {/* order number */}
@@ -906,7 +805,6 @@ function Row({
         <RowMenu
           row={r}
           onOpen={onOpen}
-          onAssign={onAssign}
           onProgress={onProgress}
           onArchive={onArchive}
         />
@@ -919,7 +817,7 @@ function Row({
  * "⋮" row menu. Hidden until the row is hovered, but pinned visible for as long
  * as the menu itself is open.
  */
-function RowMenu({ row, onOpen, onAssign, onProgress, onArchive }) {
+function RowMenu({ row, onOpen, onProgress, onArchive }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   useOnClickOutside(ref, () => setOpen(false))
@@ -952,7 +850,6 @@ function RowMenu({ row, onOpen, onAssign, onProgress, onArchive }) {
         }
         items={[
           { label: 'Open', icon: ExternalLink, onClick: run(onOpen) },
-          { label: 'Assign to me', icon: UserCheck, onClick: run(onAssign) },
           { label: 'Mark as in progress', icon: Clock, onClick: run(onProgress) },
           '-',
           { label: 'Archive', icon: Archive, danger: true, onClick: run(onArchive) },

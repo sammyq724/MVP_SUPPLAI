@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 import { SplitButton, Tooltip, HelpTip, money } from '../../ui/primitives.jsx'
 import { useToast } from '../../ui/toast.jsx'
-import { branches, contact, order } from '../../data/order.js'
+import { contact, order } from '../../data/order.js'
 
 /**
  * Screen 3 — the sticky action bar pinned to the bottom of the order builder.
@@ -40,7 +40,7 @@ const CREATE_OPTIONS = [
   {
     label: 'Create will call order',
     icon: Store,
-    hint: 'Customer picks up at the branch',
+    hint: 'Customer picks up at the counter',
   },
 ]
 
@@ -63,13 +63,13 @@ export default function SummaryBar({ total, outstanding, defaultMenuOpen = false
   const onCreate = (opt) => {
     const label = opt?.label ?? CREATE_OPTIONS[0].label
     if (label === 'Create order') {
-      toast?.success('Order 118342 released', { description: `Committed at ${branches.ship}` })
+      toast?.success('Order 118342 released', { description: 'Committed and sent to the warehouse' })
     } else if (label === 'Create ship when available order') {
       toast?.success('Ship-when-available order created', {
-        description: `Lines release from ${branches.ship}`,
+        description: 'Each line releases as stock lands',
       })
     } else if (label === 'Create will call order') {
-      toast?.success('Will call order created', { description: `Ready at ${branches.price}` })
+      toast?.success('Will call order created', { description: 'Ready for customer pickup' })
     } else {
       toast?.success('Quote Q-118342 created', {
         description: `${money(total)} · sent to ${contact.name}`,

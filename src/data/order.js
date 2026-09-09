@@ -8,7 +8,7 @@
  *
  * Line items carry `requested` (the customer's literal words), `qty` (what we
  * will actually order — may be rounded up to a sellable multiple), and up to 10
- * ranked candidates. `selected` is null until a rep picks one.
+ * ranked candidates. `selected` is null until one is picked.
  */
 
 export const order = {
@@ -40,11 +40,6 @@ export const contact = {
 export const shipTo = {
   label: 'Riverbend Tower — Job Site',
   address: '1290 Riverbend Loop, Gate 4\nHouston, TX 77043',
-}
-
-export const branches = {
-  price: 'Houston — North (HOU-01)',
-  ship: 'Katy Supply (KTY-07)',
 }
 
 export const shipViaOptions = [
@@ -453,16 +448,12 @@ export const moreCandidates = {
 export const HELP = {
   contact:
     'The person we reply to and who receives the quote PDF. Auto-matched from the sender address on the inbound email — change it if someone else owns this job.',
-  priceBranch:
-    'Branch whose price list and contract pricing this order is quoted from. Usually the branch that owns the customer account.',
-  shipBranch:
-    'Branch that physically picks and ships the goods. Can differ from the price branch when stock is closer to the job site.',
   customerPO:
     'The customer’s own purchase order number. Printed on the quote, the packing slip, and the invoice.',
   orderNumber:
     'Assigned by the ERP the moment you create the quote or order. Shows “Pending” until then.',
   shipVia: 'How the goods travel. Drives freight terms and the promised delivery window.',
-  avail: 'On-hand quantity at the ship branch right now, net of what is already committed to other orders.',
+  avail: 'On-hand quantity right now, net of what is already committed to other orders.',
   qty: 'Quantity we will actually order. May be rounded up from the request to the next sellable multiple.',
-  writer: 'The rep credited with this order in the ERP. Always the signed-in user.',
+  writer: 'Credited with this order in the ERP. Always the signed-in user.',
 }

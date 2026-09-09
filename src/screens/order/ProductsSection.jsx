@@ -91,14 +91,6 @@ export default function ProductsSection({
 
   const bulkItems = [
     {
-      label: 'Assign to branch…',
-      icon: Building2,
-      onClick: () =>
-        toast?.success(`${plural(n)} assigned to Katy Supply (KTY-07)`, {
-          description: 'Stock pulls from the branch closest to the job site',
-        }),
-    },
-    {
       label: 'Set quantity…',
       icon: Hash,
       onClick: () => toast?.info('Set quantity', { description: `Applies to ${plural(n)}` }),
