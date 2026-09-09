@@ -137,13 +137,13 @@ flows into the running total like any suggested match.
   blocking warnings.
 - **Density first** on tables and line-item lists; whitespace is spent on headers and empty
   states, not on rows.
-- **Small pills and badges** for status, branches, and line state — but *not* for match
+- **Small pills and badges** for status and line state — but *not* for match
   confidence: suggested products carry no "exact / close / alternate" labels, so the rep
   reads SKU, description, stock and price instead of a colour.
 - **Toasts** stack in the bottom-right, carry an Undo link where the action is reversible,
   and the processing toast is collapsible with a live elapsed-time counter.
-- **`?` help tips** next to any field whose meaning isn't obvious — price branch vs. ship
-  branch, Avail, rounded quantities, the Writer field.
+- **`?` help tips** next to any field whose meaning isn't obvious — Avail, rounded
+  quantities, the Writer field, the finder's bold-column toggle.
 - Numeric columns use a `nums` (tabular-figures) utility so figures align down the column.
 
 Tokens live in `src/index.css`; the primitives that enforce them live in `src/ui/`.
