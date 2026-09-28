@@ -7,7 +7,7 @@ import OrderMetaPanel from './order/OrderMetaPanel.jsx'
 import ProductsSection from './order/ProductsSection.jsx'
 import SummaryBar from './order/SummaryBar.jsx'
 import TraceConnector from './order/TraceConnector.jsx'
-import { lineItems, moreCandidates, order } from '../data/order.js'
+import { lineItems, order } from '../data/order.js'
 import { useToast } from '../ui/toast.jsx'
 
 /**
@@ -32,7 +32,6 @@ export default function OrderDetail({ params, navigate }) {
       lineItems.flatMap((li) => li.candidates.map((c) => [`${li.id}:${c.id}`, c.qty])),
     ),
   )
-  const [expanded, setExpanded] = useState(() => new Set(params.more ? [params.more] : []))
   const [checked, setChecked] = useState(() => new Set())
   const [openOnly, setOpenOnly] = useState(false)
   const [recording, setRecording] = useState(false)
@@ -71,24 +70,13 @@ export default function OrderDetail({ params, navigate }) {
   // suggested matches so the rep's own choice is the first thing they see.
   const [pickedByLine, setPickedByLine] = useState({})
 
-  /** Every candidate a line can currently resolve to, regardless of source. */
-  const allCandidatesFor = useCallback(
-    (li) => [
-      ...(pickedByLine[li.id] ?? []),
-      ...li.candidates,
-      ...(moreCandidates[li.id] ?? []),
-    ],
-    [pickedByLine],
-  )
-
-  /** What the line renders right now — extra matches only once expanded. */
+  /**
+   * Everything a line can resolve to: the matching engine's suggestions, plus
+   * anything pulled in from Find Item, which sits on top as the rep's own pick.
+   */
   const candidatesFor = useCallback(
-    (li) => [
-      ...(pickedByLine[li.id] ?? []),
-      ...li.candidates,
-      ...(expanded.has(li.id) ? (moreCandidates[li.id] ?? []) : []),
-    ],
-    [expanded, pickedByLine],
+    (li) => [...(pickedByLine[li.id] ?? []), ...li.candidates],
+    [pickedByLine],
   )
 
   const select = useCallback(
@@ -145,14 +133,6 @@ export default function OrderDetail({ params, navigate }) {
     [selections, toast],
   )
 
-  const toggleMore = useCallback((lineId) => {
-    setExpanded((s) => {
-      const next = new Set(s)
-      next.has(lineId) ? next.delete(lineId) : next.add(lineId)
-      return next
-    })
-  }, [])
-
   const visibleItems = useMemo(() => {
     let items = lineItems
     if (openOnly || highlightOutstanding) items = items.filter((li) => !selections[li.id])
@@ -176,11 +156,11 @@ export default function OrderDetail({ params, navigate }) {
       lineItems.reduce((sum, li) => {
         const id = selections[li.id]
         if (!id) return sum
-        const cand = allCandidatesFor(li).find((c) => c.id === id)
+        const cand = candidatesFor(li).find((c) => c.id === id)
         if (!cand) return sum
         return sum + cand.unitPrice * (qtys[`${li.id}:${cand.id}`] ?? cand.qty)
       }, 0),
-    [selections, qtys, allCandidatesFor],
+    [selections, qtys, candidatesFor],
   )
 
   return (
@@ -225,8 +205,6 @@ export default function OrderDetail({ params, navigate }) {
               onSelect={select}
               qtys={qtys}
               onQty={setQty}
-              expanded={expanded}
-              onToggleMore={toggleMore}
               candidatesFor={candidatesFor}
               onPickFromCatalog={pickFromCatalog}
               findOpenFor={params.find ?? null}

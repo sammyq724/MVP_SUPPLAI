@@ -2,7 +2,6 @@ import React, { useState } from 'react'
 import {
   ArrowUp,
   Check,
-  ChevronDown,
   EllipsisVertical,
   Replace,
   Search,
@@ -23,7 +22,6 @@ import {
   money,
 } from '../../ui/primitives.jsx'
 import { ProductThumb } from '../../ui/ProductThumb.jsx'
-import { moreCandidates } from '../../data/order.js'
 import { useToast } from '../../ui/toast.jsx'
 import FindItemModal from './FindItemModal.jsx'
 
@@ -32,7 +30,9 @@ import FindItemModal from './FindItemModal.jsx'
  * product matches underneath in rank order. The rep works top-to-bottom and
  * picks a row. Rows carry only what a rep needs to choose — SKU, description,
  * unit of measure, live availability, quantity and price — with no match-
- * confidence labels competing for attention.
+ * confidence labels competing for attention. Most lines carry a single
+ * suggestion; only the genuinely ambiguous ones offer a second. Anything wider
+ * than that is Find item's job.
  */
 
 /** Why the ordered quantity is snapped to a sellable multiple, per line. */
@@ -186,8 +186,6 @@ export default function LineItemBlock({
   onSelect,
   qtys,
   onQty,
-  expanded,
-  onToggleMore,
   checked,
   onCheck,
   onPickFromCatalog,
@@ -201,7 +199,6 @@ export default function LineItemBlock({
   const [findOpen, setFindOpen] = useState(defaultFindOpen)
 
   const unresolved = !selectedId
-  const extra = moreCandidates[li.id] ?? []
   const q = query.trim().toLowerCase()
   const rows = q
     ? candidates.filter(
@@ -346,33 +343,12 @@ export default function LineItemBlock({
           ))}
           {rows.length === 0 && (
             <p className="px-3 py-4 text-center text-[12px] text-ink-500">
-              No candidate on this line matches “{query.trim()}”. Clear the box to see all{' '}
-              {candidates.length} matches
-              {!expanded && extra.length > 0
-                ? `, or show ${extra.length} more from the catalog.`
-                : '.'}
+              Nothing suggested on this line matches “{query.trim()}”. Clear the box, or use Find
+              item to search the whole catalog.
             </p>
           )}
         </div>
 
-        {/* ----------------------------------------------------- show more */}
-        {extra.length > 0 && (
-          <button
-            type="button"
-            aria-expanded={expanded}
-            onClick={() => onToggleMore(li.id)}
-            className="flex h-8 w-full items-center justify-center gap-1.5 border-t border-ink-200 text-[12px] font-medium text-brand-600 transition-colors hover:bg-brand-50"
-          >
-            {expanded
-              ? 'Show less'
-              : `Show more (${extra.length} more match${extra.length === 1 ? '' : 'es'})`}
-            <ChevronDown
-              className={cx('size-3.5 transition-transform', expanded && 'rotate-180')}
-              strokeWidth={2.25}
-              aria-hidden="true"
-            />
-          </button>
-        )}
       </div>
     </Card>
   )

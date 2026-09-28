@@ -10,7 +10,6 @@ import {
   Copy,
   ExternalLink,
   FilePlus,
-  History,
   ListPlus,
   Mail,
   MoreVertical,
@@ -19,7 +18,6 @@ import {
   SearchX,
   SlidersHorizontal,
   UserPlus,
-  X,
 } from 'lucide-react'
 import {
   Button,
@@ -155,7 +153,6 @@ export default function Inbox({ params, navigate }) {
   const [sort, setSort] = useState({ key: 'date', dir: 'desc' })
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState('all')
-  const [bannerOpen, setBannerOpen] = useState(p.banner !== '0')
   const [newOrderOpen, setNewOrderOpen] = useState(p.modal === 'new')
   const [flashId, setFlashId] = useState(null)
   const [copied, copy] = useCopy()
@@ -173,7 +170,6 @@ export default function Inbox({ params, navigate }) {
   useEffect(() => () => clearTimeout(flashTimer.current), [])
 
   // URL-driven states stay in sync when the hash changes without a remount.
-  useEffect(() => setBannerOpen(p.banner !== '0'), [p.banner])
   useEffect(() => {
     if (p.modal === 'new') setNewOrderOpen(true)
   }, [p.modal])
@@ -396,10 +392,6 @@ export default function Inbox({ params, navigate }) {
           </div>
 
           <div className="ml-auto flex shrink-0 items-center gap-3">
-            <Button variant="link" size="sm" icon={History}>
-              Email history
-            </Button>
-            <span className="mx-1 h-5 w-px bg-ink-200" />
             {/* The single entry point for anything that did not arrive by email:
                 paste the text, attach the customer's file, or both. */}
             <Button variant="primary" icon={FilePlus} onClick={() => setNewOrderOpen(true)}>
@@ -408,41 +400,6 @@ export default function Inbox({ params, navigate }) {
           </div>
         </div>
       </header>
-
-      {/* --------------------------------------------------- connect banner */}
-      {bannerOpen && (
-        <div className="shrink-0 px-5 pt-3.5">
-          <div className="animate-in-fade flex items-start gap-3 rounded-xl border border-brand-200 bg-brand-50 px-3.5 py-3">
-            <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-brand-200 ring-inset">
-              <Mail className="size-4 text-brand-600" strokeWidth={2} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-semibold text-ink-900">
-                Connect your Outlook or Gmail inbox
-              </p>
-              <p className="mt-0.5 text-[12px] leading-[1.45] text-ink-600">
-                Connect the mailbox customers already write to and their requests land here on
-                their own — no forwarding rule, no copy-paste out of Outlook.
-              </p>
-            </div>
-            <div className="flex shrink-0 items-center gap-3 pl-2">
-              <Button variant="primary" size="sm">
-                Log in
-              </Button>
-              <Button variant="link" size="sm">
-                Learn more
-              </Button>
-              <IconButton
-                size="sm"
-                icon={X}
-                label="Dismiss"
-                onClick={() => setBannerOpen(false)}
-                className="hover:bg-brand-100"
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* --------------------------------------------------------- toolbar */}
       <div className="flex shrink-0 items-center gap-2 px-5 pt-3.5 pb-3">

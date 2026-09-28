@@ -3,6 +3,7 @@ import Sidebar from './layout/Sidebar.jsx'
 import { ToastProvider } from './ui/toast.jsx'
 import Inbox from './screens/Inbox.jsx'
 import OrderDetail from './screens/OrderDetail.jsx'
+import History from './screens/History.jsx'
 import Settings from './screens/Settings.jsx'
 
 /**
@@ -18,17 +19,18 @@ import Settings from './screens/Settings.jsx'
  *     ?modal=new&files=1            …with a file attached and no text
  *     ?modal=new&error=1            …submitted empty (inline validation)
  *     ?processing=1                 post-submit: processing toast + new row
- *     ?banner=0                     inbox-connect banner dismissed
  *     ?tips=1                       force the status tooltip open
  *   #/order                       Screen 3 — order detail (2 lines outstanding)
  *     ?state=resolved               every line matched, actions enabled
  *     ?tab=document                 source pane on the attachment tab
  *     ?delivery=1                   delivery address + instructions expanded
- *     ?more=li-4                    "Show more" candidates expanded for a line
  *     ?menu=create                  Create Quote dropdown open
  *     ?trace=li-1                   provenance connector: source line → matched item
  *     ?find=li-4                    Find Item lookup open for a line
  *     ?find=li-4&group=productType  …grouped by a column
+ *   #/history                     Submitted and deleted quotes / orders
+ *     ?tab=deleted                  the Deleted tab
+ *     ?open=h-1                     a row expanded to pricing / shipping / billing
  *   #/settings                    Account, inbox and parsing settings
  */
 function parseHash() {
@@ -71,6 +73,7 @@ export default function App() {
         <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
           {route === 'inbox' && <Inbox params={params} navigate={navigate} />}
           {route === 'order' && <OrderDetail params={params} navigate={navigate} />}
+          {route === 'history' && <History params={params} navigate={navigate} />}
           {route === 'settings' && <Settings params={params} navigate={navigate} />}
         </main>
       </div>

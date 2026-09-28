@@ -26,27 +26,22 @@ const SHOTS = [
   ['10-order-create-menu', '#/order?state=resolved&menu=create', 'Order detail — Create Quote dropdown'],
   ['11-order-document', '#/order?tab=document', 'Order detail — attachment tab, inline document'],
   ['12-order-delivery', '#/order?delivery=1', 'Order detail — delivery section expanded'],
+  ['13-trace-connector', '#/order?trace=li-1', 'Order detail — provenance connector, email → matched item'],
   [
-    '13-order-showmore',
-    '#/order?more=li-4',
-    'Order detail — "Show more" matches expanded',
-    // Line 4 sits below the fold; scroll it up so the state is actually visible.
-    // Match the line item's own wording ("x 45"), not the email body's ("— 45").
-    '4-11/16" square boxes, 2-1/8" deep x 45',
-  ],
-  ['14-trace-connector', '#/order?trace=li-1', 'Order detail — provenance connector, email → matched item'],
-  [
-    '15-trace-connector-doc',
+    '14-trace-connector-doc',
     '#/order?trace=li-3&tab=document',
     'Order detail — connector from the takeoff row',
   ],
-  ['16-find-item', '#/order?find=li-4', 'Find Item — item-master lookup for a line'],
+  ['15-find-item', '#/order?find=li-4', 'Find Item — item-master lookup for a line'],
   [
-    '17-find-item-grouped',
+    '16-find-item-grouped',
     '#/order?find=li-4&group=productType',
     'Find Item — grouped by Product Type',
   ],
-  ['18-settings', '#/settings', 'Settings — Inbox & Email'],
+  ['17-settings', '#/settings', 'Settings — Inbox & Email'],
+  ['18-history', '#/history', 'History — submitted quotes and orders'],
+  ['19-history-detail', '#/history?open=h-1', 'History — pricing, shipping and billing'],
+  ['20-history-deleted', '#/history?tab=deleted', 'History — deleted documents'],
 ]
 
 await mkdir(OUT, { recursive: true })

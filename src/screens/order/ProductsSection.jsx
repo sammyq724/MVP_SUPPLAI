@@ -44,8 +44,6 @@ export default function ProductsSection({
   onSelect,
   qtys,
   onQty,
-  expanded,
-  onToggleMore,
   candidatesFor,
   onPickFromCatalog,
   findOpenFor,
@@ -268,8 +266,6 @@ export default function ProductsSection({
           onSelect={onSelect}
           qtys={qtys}
           onQty={onQty}
-          expanded={expanded.has(li.id)}
-          onToggleMore={onToggleMore}
           checked={checked.has(li.id)}
           onCheck={(next) => toggleOne(li.id, next)}
         />

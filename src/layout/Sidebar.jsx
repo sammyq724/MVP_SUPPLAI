@@ -1,9 +1,16 @@
 import React from 'react'
-import { ChevronsLeft, ChevronsRight, Inbox, Settings as SettingsIcon } from 'lucide-react'
+import {
+  ChevronsLeft,
+  ChevronsRight,
+  History as HistoryIcon,
+  Inbox,
+  Settings as SettingsIcon,
+} from 'lucide-react'
 import { cx, Tooltip } from '../ui/primitives.jsx'
 
 export const NAV = [
   { key: 'inbox', label: 'Sales', icon: Inbox, hint: 'The request queue' },
+  { key: 'history', label: 'History', icon: HistoryIcon, hint: 'Submitted and deleted documents' },
   { key: 'settings', label: 'Settings', icon: SettingsIcon, hint: 'Account & integrations' },
 ]
 

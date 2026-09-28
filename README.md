@@ -36,11 +36,11 @@ npm run dev          # http://127.0.0.1:5173
 Rendered PNGs of every state are checked into [`mockups/`](mockups). To regenerate them:
 
 ```bash
-npm run shots        # build → preview → screenshot all 18 states into ./mockups
+npm run shots        # build → preview → screenshot all 20 states into ./mockups
 ```
 
 The harness fails loudly: any console error, React warning, or failed request on a
-screen marks that shot `✗`. All eighteen currently pass clean.
+screen marks that shot `✗`. All twenty currently pass clean.
 
 ## Screens
 
@@ -49,9 +49,10 @@ screen marks that shot `✗`. All eighteen currently pass clean.
 | 1 | Sales — the request queue (home) | `#/inbox` |
 | 2 | "New order" modal — text and/or files | `#/inbox?modal=new` |
 | 3 | Request / Order Detail | `#/order` |
-| 4 | Settings | `#/settings` |
+| 4 | History — submitted and deleted documents | `#/history` |
+| 5 | Settings | `#/settings` |
 
-Two sections, Sales and Settings. Single user, single branch: there is no assignee column,
+Three sections — Sales, History and Settings. Single user, single branch: there is no assignee column,
 no branch selection and no team management, because right now there is one salesman and one
 branch. Orders arrive by email, by attachment, over the phone, or typed in by hand —
 **Build New Quote/PO** takes typed text and file attachments together, since an off-channel
@@ -69,9 +70,8 @@ clicked into.
 
 | State | Route |
 |---|---|
-| Default (14 rows, connect-inbox banner shown) | `#/inbox` |
+| Default (14 rows) | `#/inbox` |
 | Status tooltip forced open | `#/inbox?tips=1` |
-| Banner dismissed | `#/inbox?banner=0` |
 
 **Screen 2 — New order modal**
 
@@ -92,11 +92,18 @@ clicked into.
 | Create Quote dropdown open (4 options) | `#/order?state=resolved&menu=create` |
 | Attachment tab — document rendered inline with zoom | `#/order?tab=document` |
 | Delivery address + instructions expanded | `#/order?delivery=1` |
-| "Show more" suggestions expanded (up to 10) | `#/order?more=li-4` |
 | Provenance connector, email → matched item | `#/order?trace=li-1` |
 | Provenance connector from the takeoff row | `#/order?trace=li-3&tab=document` |
 | Find Item lookup open for a line | `#/order?find=li-4` |
 | Find Item grouped by a column | `#/order?find=li-4&group=productType` |
+
+**Screen 4 — History**
+
+| State | Route |
+|---|---|
+| Submitted quotes and orders | `#/history` |
+| A row expanded to pricing / shipping / billing | `#/history?open=h-1` |
+| Deleted documents, with the reason each was dropped | `#/history?tab=deleted` |
 
 ### Provenance connector
 
@@ -128,6 +135,10 @@ Typing in the line's own box filters the suggestions already on that line; press
 (or the **Find item** button) escalates to the finder, carrying the text with it. Picking
 an item selects it on the line as a normal candidate — it inherits the line's quantity and
 flows into the running total like any suggested match.
+
+Most lines carry a **single** suggestion. Only the genuinely ambiguous ones offer a second —
+which is why the two-suggestion lines are exactly the ones that start outstanding. Anything
+wider than that is Find Item's job, so there is no "show more" pile to dig through.
 
 ## Design language
 
@@ -163,6 +174,8 @@ src/
     ProductThumb.jsx      SVG catalog thumbnails (no binary assets)
   data/
     queue.js              14 queue rows
+    history.js            10 submitted + 4 deleted documents, each with its
+                          pricing, shipping and billing block
     order.js              email thread, PDF takeoff, header data, 6 parsed lines
                           with ranked AI product suggestions
     catalog.js            54-row item master + the finder's column and operator
@@ -171,10 +184,11 @@ src/
     Inbox.jsx             Screen 1
     NewOrderModal.jsx     Screen 2 — typed text + file attachments
     OrderDetail.jsx       Screen 3 container — owns all shared line-item state
+    History.jsx           Screen 4 — Submitted / Deleted tabs
     order/                TopBar, SourcePane, QuoteToPanel, ShipToPanel,
                           OrderMetaPanel, ProductsSection, LineItemBlock,
                           FindItemModal, TraceConnector, SummaryBar
-    Settings.jsx          Screen 4
+    Settings.jsx          Screen 5
 ```
 
 All data is mock data. There is no backend, no network call, and no binary asset —
