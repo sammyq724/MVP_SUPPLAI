@@ -19,7 +19,6 @@ import {
   HelpTip,
   Menu,
   SearchInput,
-  Toggle,
   cx,
 } from '../../ui/primitives.jsx'
 import { lineItems } from '../../data/order.js'
@@ -54,8 +53,6 @@ export default function ProductsSection({
   onCheck,
   openOnly,
   onOpenOnly,
-  recording,
-  onRecording,
   search,
   onSearch,
   filtered,
@@ -168,16 +165,6 @@ export default function ProductsSection({
         )}
 
         <span className="mx-0.5 h-4 w-px shrink-0 bg-ink-200" aria-hidden="true" />
-
-        <span className="flex items-center gap-1.5">
-          <Toggle
-            tone="red"
-            checked={recording}
-            onChange={onRecording}
-            label={<span className={recording ? 'text-red-600' : undefined}>Live Recording</span>}
-          />
-          <HelpTip content="Transcribes a live phone call straight into these line items — turn it on before you dial the customer back, and new lines appear as they are read out." />
-        </span>
 
         <span className="flex items-center gap-1.5">
           <Checkbox

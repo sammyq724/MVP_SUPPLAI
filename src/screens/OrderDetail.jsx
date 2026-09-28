@@ -34,7 +34,6 @@ export default function OrderDetail({ params, navigate }) {
   )
   const [checked, setChecked] = useState(() => new Set())
   const [openOnly, setOpenOnly] = useState(false)
-  const [recording, setRecording] = useState(false)
   const [search, setSearch] = useState('')
   const [highlightOutstanding, setHighlightOutstanding] = useState(false)
   const [deliveryOpen, setDeliveryOpen] = useState(params.delivery === '1')
@@ -215,8 +214,6 @@ export default function OrderDetail({ params, navigate }) {
               onCheck={setChecked}
               openOnly={openOnly}
               onOpenOnly={setOpenOnly}
-              recording={recording}
-              onRecording={setRecording}
               search={search}
               onSearch={setSearch}
               filtered={openOnly || highlightOutstanding || !!search.trim()}
