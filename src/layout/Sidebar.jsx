@@ -2,9 +2,12 @@ import React from 'react'
 import {
   ChevronsLeft,
   ChevronsRight,
+  ExternalLink,
   History as HistoryIcon,
   Inbox,
+  Scissors,
   Settings as SettingsIcon,
+  SquarePen,
 } from 'lucide-react'
 import { cx, Tooltip } from '../ui/primitives.jsx'
 
@@ -12,6 +15,27 @@ export const NAV = [
   { key: 'inbox', label: 'Sales', icon: Inbox, hint: 'The request queue' },
   { key: 'history', label: 'History', icon: HistoryIcon, hint: 'Submitted and deleted documents' },
   { key: 'settings', label: 'Settings', icon: SettingsIcon, hint: 'Account & integrations' },
+]
+
+/**
+ * The two original HQPSPLBAI pages, which this UI does not replace yet. Shown
+ * in live mode only, and not optional: this app is now the front door, so
+ * without these links Split Quote, the Quotes tab and the typed-order flow
+ * would have no route to them at all.
+ */
+export const CLASSIC = [
+  {
+    href: '/inbox-classic',
+    label: 'Classic dashboard',
+    icon: Scissors,
+    hint: 'The original /inbox — the only place with Split Quote and the Quotes tab',
+  },
+  {
+    href: '/predict',
+    label: 'Type an order',
+    icon: SquarePen,
+    hint: 'Paste, photograph or attach an order and predict it, with no email involved',
+  },
 ]
 
 export function Logo({ collapsed }) {
@@ -38,7 +62,7 @@ export function Logo({ collapsed }) {
   )
 }
 
-export default function Sidebar({ active, onNavigate, collapsed, onToggle, preview = [], inboxBadge = '5' }) {
+export default function Sidebar({ active, onNavigate, collapsed, onToggle, preview = [], inboxBadge = '5', classic = [] }) {
   return (
     <aside
       className={cx(
@@ -125,6 +149,44 @@ export default function Sidebar({ active, onNavigate, collapsed, onToggle, previ
         >
           <ChevronsRight className="size-4" strokeWidth={2} />
         </button>
+      )}
+
+      {classic.length > 0 && (
+        <div className={cx('border-t border-ink-200 py-2', collapsed ? 'px-2' : 'px-2.5')}>
+          {!collapsed && (
+            <p className="mb-1 px-2 text-[10px] font-semibold tracking-[0.06em] text-ink-400 uppercase">
+              Not in Solder yet
+            </p>
+          )}
+          {classic.map((item) => {
+            const link = (
+              <a
+                key={item.href}
+                href={item.href}
+                className={cx(
+                  'group flex h-8 w-full items-center rounded-lg text-[13px] font-medium text-ink-600 transition-colors hover:bg-ink-100 hover:text-ink-900',
+                  collapsed ? 'justify-center px-0' : 'gap-2.5 px-2',
+                )}
+              >
+                <item.icon className="size-4 shrink-0 text-ink-400" strokeWidth={2} />
+                {!collapsed && (
+                  <>
+                    <span className="truncate">{item.label}</span>
+                    <ExternalLink
+                      className="ml-auto size-3 shrink-0 text-ink-300 opacity-0 transition-opacity group-hover:opacity-100"
+                      strokeWidth={2}
+                    />
+                  </>
+                )}
+              </a>
+            )
+            return (
+              <Tooltip key={item.href} content={collapsed ? item.label : item.hint} side="right" width="w-56">
+                {link}
+              </Tooltip>
+            )
+          })}
+        </div>
       )}
 
       <div className={cx('border-t border-ink-200 py-2.5', collapsed ? 'px-2' : 'px-2.5')}>

@@ -57,7 +57,7 @@ Which mode you get is decided by build mode, not by a flag anyone has to remembe
 |---|---|---|---|
 | `npm run dev` | **live** | `/MVP_SUPPLAI/` | working against a local backend |
 | `npm run build` | mock | `/MVP_SUPPLAI/` | the GitHub Pages demo, and `npm run shots` |
-| `npm run build:live` | **live** | `/app/` | the bundle HQPSPLBAI serves at `/app` |
+| `npm run build:live` | **live** | `/app/` | the bundle HQPSPLBAI serves at `/`, `/inbox` and `/app` |
 
 `VITE_LIVE=1` / `VITE_LIVE=0` overrides either direction.
 
@@ -91,6 +91,12 @@ Live: the inbox queue (polled every 10s), the order detail with the email and ev
 line items parsed from the prediction, the pick between equivalent item IDs, the "mark wrong" X
 and per-line notes, and submit to the review queue. Delete, the blue flag, Retry and
 Predict-anyway are all wired to their real endpoints.
+
+**As of 2026-10-07 this is HQPSPLBAI's landing page** — `/` and `/inbox` both serve it. The two
+pages it replaced are still there and are linked from the sidebar under *"Not in Solder yet"*,
+because each still does something this does not: `/inbox-classic` is the only place with Split
+Quote and the Quotes tab, and `/predict` is the only way to predict an order that did not arrive
+by email.
 
 Not live, and labelled **Preview** in the sidebar: History, Settings, Find Item, the
 Build-New-Quote/PO flow and the Split Quote UI. Anything needing Prophet 21 — unit price,

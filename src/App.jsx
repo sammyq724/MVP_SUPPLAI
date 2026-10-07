@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import Sidebar from './layout/Sidebar.jsx'
+import Sidebar, { CLASSIC } from './layout/Sidebar.jsx'
 import { ToastProvider } from './ui/toast.jsx'
 import Inbox from './screens/Inbox.jsx'
 import OrderDetail from './screens/OrderDetail.jsx'
@@ -84,6 +84,7 @@ function Shell() {
         onToggle={() => setCollapsed((c) => !c)}
         preview={LIVE ? ['history', 'settings'] : []}
         inboxBadge={LIVE ? null : '5'}
+        classic={LIVE ? CLASSIC : []}
       />
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         {route === 'inbox' &&
