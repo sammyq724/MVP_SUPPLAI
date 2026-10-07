@@ -42,13 +42,44 @@ function AddSlot({ label, onClick }) {
   )
 }
 
-export default function ShipToPanel({ defaultDeliveryOpen = false, onDeliveryToggle }) {
+/**
+ * LIVE: every field is shown, and every field starts blank, editable and
+ * optional. Nothing in this panel is sent anywhere yet — /api/submit-order
+ * takes no shipping data — so it exists to be filled in by eye now and wired
+ * up when there is somewhere to send it, never to block a submit.
+ */
+const BLANK_DELIVERY = {
+  street: '',
+  complement: '',
+  city: '',
+  state: '',
+  country: 'United States',
+  postal: '',
+  instructions: '',
+  carrier: '',
+  tracking: '',
+  route: '',
+  freight: '',
+}
+
+const AREA_CLASS =
+  'w-full resize-y rounded-lg border border-ink-300 bg-white px-2.5 py-1.5 text-[13px] leading-[1.45] text-ink-800 shadow-[0_1px_1px_0_rgb(15_23_42_/_0.03)] transition-colors placeholder:text-ink-400 hover:border-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none read-only:cursor-default read-only:border-ink-200 read-only:bg-ink-50 read-only:text-ink-500'
+
+export default function ShipToPanel({
+  defaultDeliveryOpen = false,
+  onDeliveryToggle,
+  live = false,
+  readOnly = false,
+}) {
   const toast = useToast()
 
-  const [hasAddress, setHasAddress] = useState(true)
+  // Live has no ship-to on file: the backend stores the email, not an address.
+  const [hasAddress, setHasAddress] = useState(!live)
+  const [liveLabel, setLiveLabel] = useState('')
+  const [liveAddress, setLiveAddress] = useState('')
   const [shipVia, setShipVia] = useState('')
   const [open, setOpenState] = useState(defaultDeliveryOpen)
-  const [d, setD] = useState(deliveryDetail)
+  const [d, setD] = useState(live ? BLANK_DELIVERY : deliveryDetail)
 
   // The container widens this panel to the full grid while the delivery form is
   // open — a two-column address form does not fit in a one-third column.
@@ -78,7 +109,30 @@ export default function ShipToPanel({ defaultDeliveryOpen = false, onDeliveryTog
       help="Where the goods physically land. Freight terms and the promised window follow from this block, not from the billing address."
     >
       {/* ------------------------------------------------------ destination */}
-      {hasAddress ? (
+      {live ? (
+        <div className="space-y-2.5">
+          <Field label="Ship to">
+            <TextInput
+              value={liveLabel}
+              onChange={(e) => setLiveLabel(e.target.value)}
+              placeholder="Job site or branch"
+              aria-label="Ship-to name"
+              readOnly={readOnly}
+            />
+          </Field>
+          <Field label="Address">
+            <textarea
+              rows={2}
+              value={liveAddress}
+              onChange={(e) => setLiveAddress(e.target.value)}
+              readOnly={readOnly}
+              placeholder="Street, city, state, ZIP"
+              aria-label="Ship-to address"
+              className={AREA_CLASS}
+            />
+          </Field>
+        </div>
+      ) : hasAddress ? (
         <>
           <Chip
             icon={MapPin}

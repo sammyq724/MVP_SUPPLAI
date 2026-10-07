@@ -1,13 +1,22 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Building2, User, Plus, Mail, Phone, AlertTriangle } from 'lucide-react'
-import { Panel, Chip, Badge, HelpTip } from '../../ui/primitives.jsx'
+import { Panel, Chip, Badge, Field, TextInput, HelpTip } from '../../ui/primitives.jsx'
 import { customer, contact, HELP } from '../../data/order.js'
 import { useToast } from '../../ui/toast.jsx'
 
 /**
  * Screen 3 header, panel 1 — who the quote is priced and billed to.
- * Both slots are resolved chips by default; clearing one collapses the block to
- * a dashed "add" affordance so an incomplete header is impossible to miss.
+ *
+ * MOCK: both slots are resolved chips; clearing one collapses the block to a
+ * dashed "add" affordance so an incomplete header is impossible to miss.
+ *
+ * LIVE: plain editable fields, prefilled with the little the backend actually
+ * knows. `createJob()` never records a customer id — only a gate skip and a
+ * submitted job carry one — so on an ordinary predicted email the sender
+ * address is the whole of the customer identity we have, and Customer # starts
+ * empty. It is one of only two required fields on the page precisely because
+ * nothing else can supply it. Everything else here is editable, optional, and
+ * is not sent anywhere yet.
  */
 
 /** Dashed placeholder shown wherever a required chip has been cleared. */
@@ -33,7 +42,126 @@ function BlockLabel({ children, help }) {
   )
 }
 
-export default function QuoteToPanel() {
+const PANEL_HELP =
+  'The account this quote is priced and billed to. Pulled from the sender domain, then confirmed against the ERP account list.'
+
+const CUSTOMER_NO_HELP =
+  'The ERP account number. Required: it stamps every review-queue row, and a quote is indexed by it so a purchase order arriving weeks later can be matched back to this.'
+
+/* ------------------------------------------------------------------- live */
+
+function LiveQuoteTo({
+  customerId,
+  onCustomerId,
+  customerName,
+  contactName,
+  contactEmail,
+  showRequired,
+  readOnly,
+}) {
+  const [name, setName] = useState(customerName || '')
+  const [billing, setBilling] = useState('')
+  const [who, setWho] = useState(contactName || '')
+  const [email, setEmail] = useState(contactEmail || '')
+  const [phone, setPhone] = useState('')
+
+  // A poll can fill these in after the first render, but must never overwrite
+  // what the rep has typed — hence the `v || …` rather than a plain set.
+  useEffect(() => { setName((v) => v || customerName || '') }, [customerName])
+  useEffect(() => { setWho((v) => v || contactName || '') }, [contactName])
+  useEffect(() => { setEmail((v) => v || contactEmail || '') }, [contactEmail])
+
+  const area =
+    'w-full resize-y rounded-lg border border-ink-300 bg-white px-2.5 py-1.5 text-[13px] leading-[1.45] text-ink-800 shadow-[0_1px_1px_0_rgb(15_23_42_/_0.03)] transition-colors placeholder:text-ink-400 hover:border-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none read-only:cursor-default read-only:border-ink-200 read-only:bg-ink-50 read-only:text-ink-500'
+
+  return (
+    <Panel title="Quote To" help={PANEL_HELP}>
+      <div className="space-y-2.5">
+        <Field label="Customer #" required help={CUSTOMER_NO_HELP}>
+          <TextInput
+            value={customerId}
+            onChange={(e) => onCustomerId(e.target.value)}
+            placeholder="e.g. 10253"
+            aria-label="Customer number"
+            className="nums"
+            invalid={showRequired}
+            readOnly={readOnly}
+          />
+          {showRequired && (
+            <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-red-600">
+              <AlertTriangle className="size-3 shrink-0" strokeWidth={2.25} aria-hidden="true" />
+              Required
+            </p>
+          )}
+        </Field>
+
+        <Field label="Customer name">
+          <TextInput
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Not on file"
+            aria-label="Customer name"
+            readOnly={readOnly}
+          />
+        </Field>
+
+        <Field label="Billing address">
+          <textarea
+            rows={2}
+            value={billing}
+            onChange={(e) => setBilling(e.target.value)}
+            readOnly={readOnly}
+            placeholder="Street, city, state, ZIP"
+            aria-label="Billing address"
+            className={area}
+          />
+        </Field>
+      </div>
+
+      <div className="mt-2.5 space-y-2.5 border-t border-ink-200 pt-2.5">
+        <Field label="Contact" help={HELP.contact}>
+          <TextInput
+            icon={User}
+            value={who}
+            onChange={(e) => setWho(e.target.value)}
+            placeholder="Who sent this"
+            aria-label="Contact name"
+            readOnly={readOnly}
+          />
+        </Field>
+        <Field label="Email">
+          <TextInput
+            icon={Mail}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Sender address"
+            aria-label="Contact email"
+            readOnly={readOnly}
+          />
+        </Field>
+        <Field label="Phone">
+          <TextInput
+            icon={Phone}
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Not on file"
+            aria-label="Contact phone"
+            className="nums"
+            readOnly={readOnly}
+          />
+        </Field>
+      </div>
+    </Panel>
+  )
+}
+
+/* ------------------------------------------------------------------- mock */
+
+export default function QuoteToPanel(props) {
+  return props.live ? <LiveQuoteTo {...props} /> : <MockQuoteTo />
+}
+
+function MockQuoteTo() {
   const toast = useToast()
   const [hasCustomer, setHasCustomer] = useState(true)
   const [hasContact, setHasContact] = useState(true)
@@ -48,10 +176,7 @@ export default function QuoteToPanel() {
   }
 
   return (
-    <Panel
-      title="Quote To"
-      help="The account this quote is priced and billed to. Pulled from the sender domain, then confirmed against the ERP account list."
-    >
+    <Panel title="Quote To" help={PANEL_HELP}>
       {/* -------------------------------------------------------- customer */}
       <div>
         <BlockLabel>Customer</BlockLabel>

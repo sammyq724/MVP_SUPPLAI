@@ -38,7 +38,7 @@ export function Logo({ collapsed }) {
   )
 }
 
-export default function Sidebar({ active, onNavigate, collapsed, onToggle }) {
+export default function Sidebar({ active, onNavigate, collapsed, onToggle, preview = [], inboxBadge = '5' }) {
   return (
     <aside
       className={cx(
@@ -92,9 +92,16 @@ export default function Sidebar({ active, onNavigate, collapsed, onToggle }) {
                 strokeWidth={2}
               />
               {!collapsed && <span className="truncate">{item.label}</span>}
-              {!collapsed && item.key === 'inbox' && (
+              {/* Screens still on mock data in live mode are labelled rather
+                  than hidden: they are the next phases, not dead ends. */}
+              {!collapsed && preview.includes(item.key) && (
+                <span className="ml-auto rounded-full bg-ink-100 px-1.5 py-0.5 text-[10px] font-semibold text-ink-500 ring-1 ring-ink-200 ring-inset">
+                  Preview
+                </span>
+              )}
+              {!collapsed && item.key === 'inbox' && inboxBadge && (
                 <span className="nums ml-auto rounded-full bg-brand-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  5
+                  {inboxBadge}
                 </span>
               )}
             </button>

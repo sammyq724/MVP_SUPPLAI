@@ -16,9 +16,15 @@ import { contact, order } from '../../data/order.js'
 
 /**
  * Screen 3 — the sticky action bar pinned to the bottom of the order builder.
- * Two jobs: keep the running subtotal in view while the rep scrolls the line
- * items, and gate the create/export actions until every line has a product
- * selected. Nothing here can be fired while `outstanding > 0`.
+ *
+ * MOCK: keeps the running subtotal in view while the rep scrolls the line
+ * items, and gates create/export until every line has a product selected.
+ *
+ * LIVE: the same split button submits to the review queue. There is no P21
+ * connection, so there is no price to total — a "Pricing needs P21" note sits
+ * where the subtotal does rather than a $0.00 nobody should read as a number.
+ * Export is off for the same reason: a quote PDF with no prices is worse than
+ * no PDF.
  */
 
 const CREATE_OPTIONS = [
@@ -44,6 +50,35 @@ const CREATE_OPTIONS = [
   },
 ]
 
+/**
+ * Live mode says what each option RECORDS, not what the warehouse does with
+ * it — because that is the consequential half here. A submission marked quote
+ * enters the open-quote index and can cause a real purchase order to be
+ * skipped weeks later; one marked order cannot.
+ */
+const LIVE_CREATE_OPTIONS = CREATE_OPTIONS.map((o) => ({
+  ...o,
+  hint:
+    o.label === 'Create quote'
+      ? 'Recorded as a QUOTE — it enters the open-quote index and can gate a later PO'
+      : 'Recorded as an ORDER — nothing is added to the quote index',
+}))
+
+/**
+ * Which `submission_type` each option sends. Only "Create quote" records a
+ * QUOTE — and that distinction is load-bearing, not cosmetic: a quote goes into
+ * the open-quote index, and an order wrongly recorded as one would gate a real
+ * purchase order weeks later. Ship-when-available and will call are both orders
+ * as far as the review queue is concerned; the distinction between them lives
+ * in the ERP, which this does not reach yet.
+ */
+const SUBMISSION_TYPE = {
+  'Create quote': 'quote',
+  'Create order': 'order',
+  'Create ship when available order': 'order',
+  'Create will call order': 'order',
+}
+
 const EXPORT_OPTIONS = [
   { label: 'Export as PDF', icon: FileDown },
   { label: 'Export as CSV', icon: Sheet },
@@ -56,7 +91,124 @@ const TOTAL_HELP =
 
 const BLOCKED_TIP = 'Select a product for every line item to enable this.'
 
-export default function SummaryBar({ total, outstanding, defaultMenuOpen = false, onShowOutstanding }) {
+export default function SummaryBar(props) {
+  return props.live ? <LiveSummaryBar {...props} /> : <MockSummaryBar {...props} />
+}
+
+/* ------------------------------------------------------------------- live */
+
+function LiveSummaryBar({
+  outstanding,
+  lineCount,
+  canSubmit,
+  submitting,
+  readOnly,
+  missingCustomer,
+  missingOrderRef,
+  error,
+  onSubmit,
+}) {
+  const missingFields = [missingCustomer && 'Customer #', missingOrderRef && 'Order / Quote #'].filter(
+    Boolean,
+  )
+  const blocked = !canSubmit
+
+  const tip = readOnly
+    ? 'This email has already been submitted.'
+    : outstanding > 0
+      ? 'Pick between the equivalent item IDs on every outstanding line to enable this.'
+      : missingFields.length
+        ? `${missingFields.join(' and ')} ${missingFields.length === 1 ? 'is' : 'are'} required.`
+        : null
+
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-0">
+      <div className="h-7 bg-gradient-to-b from-transparent to-ink-100" />
+
+      <div className="pointer-events-auto border-t border-ink-200 bg-white/95 px-5 py-3 shadow-[0_-1px_3px_0_rgb(15_23_42_/_0.06)] backdrop-blur">
+        {error && (
+          <div
+            role="alert"
+            className="mb-2.5 flex items-start gap-2.5 rounded-lg border border-red-300 bg-red-50 px-3 py-2"
+          >
+            <AlertCircle className="mt-px size-4 shrink-0 text-red-500" strokeWidth={2.25} />
+            <p className="text-[12px] leading-5 font-medium text-red-800">{error}</p>
+          </div>
+        )}
+
+        {!readOnly && outstanding > 0 && (
+          <div
+            role="status"
+            className="mb-2.5 flex items-center gap-2.5 rounded-lg border border-red-300 bg-red-50 px-3 py-2"
+          >
+            <AlertCircle className="size-4 shrink-0 text-red-500" strokeWidth={2.25} />
+            <p className="text-[12px] font-medium text-red-800">
+              {outstanding === 1
+                ? '1 line item is outstanding and needs an item ID picked'
+                : `${outstanding} line items are outstanding and need an item ID picked`}
+            </p>
+          </div>
+        )}
+
+        {!readOnly && outstanding === 0 && missingFields.length > 0 && (
+          <div
+            role="status"
+            className="mb-2.5 flex items-center gap-2.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2"
+          >
+            <AlertCircle className="size-4 shrink-0 text-amber-500" strokeWidth={2.25} />
+            <p className="text-[12px] font-medium text-amber-900">
+              {missingFields.join(' and ')} {missingFields.length === 1 ? 'is' : 'are'} required
+              before this can be submitted.
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-2.5">
+              <span className="text-[11px] font-semibold tracking-[0.04em] text-ink-500 uppercase">
+                Total
+              </span>
+              <span className="text-[13px] font-medium text-ink-500">Pricing needs P21</span>
+              <HelpTip
+                side="top"
+                content="Unit price, availability and totals come from Prophet 21. Until that connection exists this screen shows no numbers rather than placeholder ones."
+              />
+            </div>
+            <p className="mt-0.5 truncate text-[11px] text-ink-400">
+              {readOnly
+                ? 'Already submitted to the review queue.'
+                : `${lineCount} line${lineCount === 1 ? '' : 's'} · submitting writes them to review_queue2.csv`}
+            </p>
+          </div>
+
+          <Tooltip content={tip} side="top" width="w-60">
+            <span className="ml-auto flex items-center gap-2">
+              <SplitButton
+                label={submitting ? 'Saving…' : 'Create Quote'}
+                variant="primary"
+                options={LIVE_CREATE_OPTIONS}
+                onSelect={(opt) => onSubmit(SUBMISSION_TYPE[opt?.label ?? 'Create quote'] ?? 'order')}
+                disabled={blocked || submitting}
+              />
+              <SplitButton
+                label="Export"
+                variant="secondary"
+                options={EXPORT_OPTIONS}
+                onSelect={() => {}}
+                disabled
+              />
+            </span>
+          </Tooltip>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------- mock */
+
+function MockSummaryBar({ total, outstanding, defaultMenuOpen = false, onShowOutstanding }) {
   const toast = useToast()
   const blocked = outstanding > 0
 

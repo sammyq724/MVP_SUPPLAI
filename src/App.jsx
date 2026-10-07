@@ -5,6 +5,10 @@ import Inbox from './screens/Inbox.jsx'
 import OrderDetail from './screens/OrderDetail.jsx'
 import History from './screens/History.jsx'
 import Settings from './screens/Settings.jsx'
+import { LIVE } from './live/config.js'
+import PasswordGate from './live/PasswordGate.jsx'
+import LiveInbox from './live/LiveInbox.jsx'
+import LiveOrderDetail from './live/LiveOrderDetail.jsx'
 
 /**
  * Hash router.
@@ -32,6 +36,16 @@ import Settings from './screens/Settings.jsx'
  *     ?tab=deleted                  the Deleted tab
  *     ?open=h-1                     a row expanded to pricing / shipping / billing
  *   #/settings                    Account, inbox and parsing settings
+ *
+ * LIVE MODE (src/live/config.js) swaps Sales for the real inbox behind the
+ * HQPSPLBAI backend. The route contract is the same except that the detail
+ * screen needs to know WHICH email:
+ *
+ *   #/inbox                       the real queue, polled
+ *   #/order?id=<job_id>           that email's prediction
+ *
+ * History and Settings stay on mock data and are labelled Preview — they are
+ * later phases (see the roadmap in README.md).
  */
 function parseHash() {
   const raw = window.location.hash.replace(/^#\/?/, '')
@@ -54,7 +68,7 @@ export function useRouter() {
   return { ...state, navigate }
 }
 
-export default function App() {
+function Shell() {
   const { route, params, navigate } = useRouter()
   const [collapsed, setCollapsed] = useState(false)
 
@@ -62,21 +76,41 @@ export default function App() {
   const activeNav = route === 'order' ? 'inbox' : route
 
   return (
+    <div className="flex h-screen w-screen overflow-hidden bg-ink-100">
+      <Sidebar
+        active={activeNav}
+        onNavigate={(k) => navigate(k)}
+        collapsed={collapsed}
+        onToggle={() => setCollapsed((c) => !c)}
+        preview={LIVE ? ['history', 'settings'] : []}
+        inboxBadge={LIVE ? null : '5'}
+      />
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        {route === 'inbox' &&
+          (LIVE ? <LiveInbox navigate={navigate} /> : <Inbox params={params} navigate={navigate} />)}
+        {route === 'order' &&
+          (LIVE ? (
+            <LiveOrderDetail id={params.id} navigate={navigate} />
+          ) : (
+            <OrderDetail params={params} navigate={navigate} />
+          ))}
+        {route === 'history' && <History params={params} navigate={navigate} />}
+        {route === 'settings' && <Settings params={params} navigate={navigate} />}
+      </main>
+    </div>
+  )
+}
+
+export default function App() {
+  return (
     <ToastProvider>
-      <div className="flex h-screen w-screen overflow-hidden bg-ink-100">
-        <Sidebar
-          active={activeNav}
-          onNavigate={(k) => navigate(k)}
-          collapsed={collapsed}
-          onToggle={() => setCollapsed((c) => !c)}
-        />
-        <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-          {route === 'inbox' && <Inbox params={params} navigate={navigate} />}
-          {route === 'order' && <OrderDetail params={params} navigate={navigate} />}
-          {route === 'history' && <History params={params} navigate={navigate} />}
-          {route === 'settings' && <Settings params={params} navigate={navigate} />}
-        </main>
-      </div>
+      {LIVE ? (
+        <PasswordGate>
+          <Shell />
+        </PasswordGate>
+      ) : (
+        <Shell />
+      )}
     </ToastProvider>
   )
 }

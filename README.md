@@ -42,6 +42,100 @@ npm run shots        # build → preview → screenshot all 20 states into ./moc
 The harness fails loudly: any console error, React warning, or failed request on a
 screen marks that shot `✗`. All twenty currently pass clean.
 
+## Live mode — real inbox data from HQPSPLBAI
+
+By default this repo is a mockup: `src/data/*.js`, no backend, no network call. **Live mode**
+points the Sales screens at the real [HQPSPLBAI](https://github.com/sammyq724/HQPSPLBAI) backend
+— the Node/Express app that receives order emails from Make.com, predicts item IDs with Claude,
+and until now showed them only on its own plain-HTML dashboard at `/inbox`. In live mode this UI
+renders the same emails, the same predictions and the same review controls, and submits to the
+same `review_queue2.csv`.
+
+Which mode you get is decided by build mode, not by a flag anyone has to remember:
+
+| Command | Mode | Base | Used for |
+|---|---|---|---|
+| `npm run dev` | **live** | `/MVP_SUPPLAI/` | working against a local backend |
+| `npm run build` | mock | `/MVP_SUPPLAI/` | the GitHub Pages demo, and `npm run shots` |
+| `npm run build:live` | **live** | `/app/` | the bundle HQPSPLBAI serves at `/app` |
+
+`VITE_LIVE=1` / `VITE_LIVE=0` overrides either direction.
+
+### Running it against a local backend
+
+```bash
+# 1. in a HQPSPLBAI checkout — a sandbox copy of the data, nothing pushed
+./scripts/dev_sandbox.sh          # serves :3000, SITE_PASSWORD=test
+
+# 2. here
+npm run dev                       # http://127.0.0.1:5173/MVP_SUPPLAI/
+```
+
+Vite proxies `/api` and `/attachment` to the backend, so live mode is same-origin. That matters
+twice over: the backend sets no CORS headers, and the shared password travels in a POST body.
+
+**Never point this at production Render or the real repo.** `dev_sandbox.sh` exists so a test
+submit writes to a throwaway `review_queue2.csv`; it leaves `GITHUB_*` unset, which makes
+`sync.js` refuse to run git at all.
+
+| Env var | Default | What it does |
+|---|---|---|
+| `VITE_LIVE` | `1` in dev, `0` in build | force live or mock |
+| `VITE_API_TARGET` | `http://127.0.0.1:3000` | where the dev proxy sends `/api` and `/attachment` |
+| `VITE_BASE` | `/MVP_SUPPLAI/` | public base path (`/app/` for the live build) |
+| `VITE_API_BASE` | *(empty — same origin)* | debugging door only; the backend sends no CORS headers |
+
+### What live mode covers, and what it doesn't
+
+Live: the inbox queue (polled every 10s), the order detail with the email and every attachment,
+line items parsed from the prediction, the pick between equivalent item IDs, the "mark wrong" X
+and per-line notes, and submit to the review queue. Delete, the blue flag, Retry and
+Predict-anyway are all wired to their real endpoints.
+
+Not live, and labelled **Preview** in the sidebar: History, Settings, Find Item, the
+Build-New-Quote/PO flow and the Split Quote UI. Anything needing Prophet 21 — unit price,
+availability, UoM, totals, the item-master finder — reads `—` rather than a plausible-looking
+number, and the total line says *Pricing needs P21*.
+
+### `src/live/`
+
+All of it lives there, so mock mode is untouched and `npm run shots` cannot regress:
+
+| File | Job |
+|---|---|
+| `config.js` | the `LIVE` switch and poll intervals |
+| `api.js` | POST + shared password, `ApiError` carrying the HTTP status |
+| `PasswordGate.jsx` | the gate; same `sessionStorage` key as `/inbox` |
+| `parse.js` | **the prediction-table parser** — a port of `inbox.html`'s |
+| `adapt.js` | job summary → queue row, status → pill, Make's envelope → readable email |
+| `useInbox.js` / `useJob.js` | polling and the per-email actions |
+| `LiveInbox.jsx`, `LiveOrderDetail.jsx`, `LiveSourcePane.jsx`, `LiveLineBlock.jsx`, `LiveBanners.jsx`, `LiveTopBar.jsx`, `LiveStatusPill.jsx`, `ConfirmDelete.jsx` | the screens |
+
+The five shared components that needed both behaviours — `QuoteToPanel`, `ShipToPanel`,
+`OrderMetaPanel`, `SummaryBar`, `Sidebar` — take a `live` prop and branch at the top; the mock
+path is byte-for-byte what it was.
+
+### Parser parity
+
+`src/live/parse.js` re-implements `/inbox`'s table parsing. If the two ever disagree a row
+silently changes number — and a row number is what a Split Quote names, what the server's
+"must leave at least one item" guardrail counts, and what a *"Row 12: Not lead free?"* follow-up
+points at. So it is checked rather than trusted:
+
+```bash
+npm run parity -- --repo ../plumbing-data     # $0, offline, read-only
+```
+
+It lifts `parseResult`, `tablesForJob` and `parseChoiceCell` straight out of `inbox.html`,
+runs both implementations over **every** `predicted` payload in `inbox_log.csv`, and diffs row
+count, numbering, split-off hiding, table labels, trailing text and the `" OR "` choice split
+(ids *and* the descriptions paired with them). It cross-checks row numbering against
+`webapp/rows.js` as a third opinion, adds five synthetic edge cases for shapes the real corpus
+does not contain yet, and fails if the corpus stops covering a two-choice row, a
+`NO_PREDICTION`, a multi-part job or a split job.
+
+**If you change `parseResult` in `inbox.html`, change it here and in `rows.js`.**
+
 ## Screens
 
 | # | Screen | Route |
