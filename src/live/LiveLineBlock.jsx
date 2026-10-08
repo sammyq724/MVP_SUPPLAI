@@ -1,6 +1,6 @@
 import React from 'react'
 import { Check, Hammer, Link2, Search, Table2, X } from 'lucide-react'
-import { Badge, Card, TextInput, Tooltip, cx } from '../ui/primitives.jsx'
+import { Badge, Card, Checkbox, TextInput, Tooltip, cx } from '../ui/primitives.jsx'
 
 /**
  * One predicted line, with the review-loop controls /inbox carries.
@@ -78,7 +78,15 @@ function CandidateRow({ cand, selectable, selected, onSelect, qty, name }) {
   )
 }
 
-export default function LiveLineBlock({ line, state, onChange, readOnly }) {
+export default function LiveLineBlock({
+  line,
+  state,
+  onChange,
+  readOnly,
+  splitMode = false,
+  splitChecked = false,
+  onSplitToggle,
+}) {
   const { classified: c, n } = line
   const isChoice = c.kind === 'choice'
   const unresolved = isChoice && !state.chosen
@@ -90,11 +98,11 @@ export default function LiveLineBlock({ line, state, onChange, readOnly }) {
       data-live-line={n}
       className={cx(
         'mt-2 overflow-hidden',
-        state.flagged
-          ? 'ring-1 ring-red-300'
-          : unresolved
-            ? 'ring-1 ring-amber-300'
-            : missing
+        splitChecked
+          ? 'ring-2 ring-brand-500'
+          : state.flagged
+            ? 'ring-1 ring-red-300'
+            : unresolved || missing
               ? 'ring-1 ring-amber-300'
               : undefined,
       )}
@@ -102,6 +110,19 @@ export default function LiveLineBlock({ line, state, onChange, readOnly }) {
       <div className={cx((unresolved || missing) && 'bg-amber-50/30', state.flagged && 'bg-red-50/30')}>
         {/* ----------------------------------------------------------- header */}
         <div className="flex items-start gap-3 px-3 py-2.5">
+          {/* Hidden until Split Quote is clicked — a checkbox column is noise
+              on an ordinary order (Sam). */}
+          {splitMode && (
+            <Checkbox
+              className="mt-0.5"
+              checked={splitChecked}
+              onChange={(next) => onSplitToggle?.(n, next)}
+              label={<span className="sr-only">Select line {n} to split into a separate quote</span>}
+            />
+          )}
+          {/* The line's own number, which runs continuously across every part
+              and is KEPT through a split, so gaps are expected once lines have
+              moved and a "Row 12:" follow-up still lines up. */}
           <span className="nums mt-px flex size-5 shrink-0 items-center justify-center rounded-md bg-ink-100 text-[11px] font-semibold text-ink-600">
             {n}
           </span>

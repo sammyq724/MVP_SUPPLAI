@@ -1,11 +1,14 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   ChevronDown,
   ChevronsUpDown,
+  FilePlus,
   Flag,
+  History as HistoryIcon,
   Mail,
   MoreVertical,
   Paperclip,
+  PencilLine,
   RefreshCw,
   SearchX,
   Trash2,
@@ -26,8 +29,11 @@ import {
 import { useToast } from '../ui/toast.jsx'
 import LiveStatusPill from './LiveStatusPill.jsx'
 import ConfirmDelete from './ConfirmDelete.jsx'
+import NewOrderModal from '../screens/NewOrderModal.jsx'
 import { useInbox } from './useInbox.js'
-import { statusMeta } from './adapt.js'
+import { draftIds, pruneDrafts, clearDraft } from './useDraft.js'
+import { submitManualOrder } from './submitManual.js'
+import { displayStatus, showsInInbox, statusMeta } from './adapt.js'
 import { AUTH_ERROR } from './api.js'
 
 /**
@@ -73,27 +79,43 @@ const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
 
 export default function LiveInbox({ navigate }) {
   const toast = useToast()
-  const { rows, counts, loading, error, reload, setFlag, dismiss } = useInbox()
+  const { rows: allRows, counts, loading, error, reload, setFlag, dismiss } = useInbox()
   const [query, setQuery] = useState('')
   const [tab, setTab] = useState('all')
   const [sort, setSort] = useState({ key: 'date', dir: 'desc' })
   const [deleting, setDeleting] = useState(null)
   const [deleteBusy, setDeleteBusy] = useState(false)
+  const [newOrderOpen, setNewOrderOpen] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [drafts, setDrafts] = useState(() => draftIds())
+
+  // A gate skip never left the salesman's Gmail inbox, so it does not belong in
+  // this one either (Sam). It is a record of a decision, and lives in History.
+  const rows = useMemo(() => allRows.filter((r) => showsInInbox(r.status)), [allRows])
+
+  // Which emails have unfinished work saved in this browser. Recomputed when
+  // the list changes rather than on a timer: coming back from a detail view
+  // re-renders this, which is exactly when the answer can have changed.
+  useEffect(() => {
+    if (!allRows.length) return
+    pruneDrafts(allRows.map((r) => r.id))
+    setDrafts(draftIds())
+  }, [allRows])
 
   const tabCounts = useMemo(() => {
     const out = { all: rows.length, New: 0, 'In Progress': 0 }
     for (const r of rows) {
-      const t = statusMeta(r.status).tab
+      const t = statusMeta(displayStatus(r, drafts)).tab
       if (t) out[t] += 1
     }
     return out
-  }, [rows])
+  }, [rows, drafts])
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase()
     const out = rows
       .map((r, i) => ({ r, i }))
-      .filter(({ r }) => (tab === 'all' ? true : statusMeta(r.status).tab === tab))
+      .filter(({ r }) => (tab === 'all' ? true : statusMeta(displayStatus(r, drafts)).tab === tab))
       .filter(({ r }) =>
         !q
           ? true
@@ -125,7 +147,7 @@ export default function LiveInbox({ navigate }) {
         return a.i - b.i
       })
       .map(({ r }) => r)
-  }, [rows, query, tab, sort])
+  }, [rows, query, tab, sort, drafts])
 
   const toggleSort = useCallback((key) => {
     setSort((s) =>
@@ -134,6 +156,38 @@ export default function LiveInbox({ navigate }) {
         : { key, dir: key === 'lines' || key === 'date' ? 'desc' : 'asc' },
     )
   }, [])
+
+  /**
+   * A typed or attached order. POSTed to /api/jobs, the same endpoint Make uses
+   * for arriving email, so it becomes an ordinary inbox entry: it predicts in
+   * the background and lands as a card to be reviewed and submitted like any
+   * other. See src/live/submitManual.js.
+   */
+  const handleNewOrder = useCallback(
+    async ({ text, files }) => {
+      if (sending) return
+      setSending(true)
+      try {
+        const { subject } = await submitManualOrder({ text, files })
+        setNewOrderOpen(false)
+        setTab('all')
+        setQuery('')
+        toast?.success('Order sent for prediction', {
+          description: `${subject} — it will appear below as Predicting`,
+        })
+        await reload()
+      } catch (e) {
+        // The dialog is left open with the rep's text still in it: a failed
+        // send must not cost them what they typed.
+        if (e.message !== AUTH_ERROR) {
+          toast?.warning('Could not send that order', { description: e.message })
+        }
+      } finally {
+        setSending(false)
+      }
+    },
+    [sending, toast, reload],
+  )
 
   const onFlag = async (row) => {
     try {
@@ -167,13 +221,14 @@ export default function LiveInbox({ navigate }) {
           </div>
 
           <div className="ml-auto flex shrink-0 items-center gap-3">
-            <Tooltip content="Needs P21 connection — typed orders are not wired to the live backend yet.">
-              <span className="inline-flex h-8 cursor-not-allowed items-center gap-1.5 rounded-lg border border-ink-200 bg-ink-100 px-3 text-[13px] font-medium text-ink-400">
-                Build New Quote/PO
-              </span>
-            </Tooltip>
             <Button size="md" icon={RefreshCw} onClick={() => reload()}>
               Refresh
+            </Button>
+            {/* An order that arrived by phone, by hand or as a bare takeoff.
+                It goes through the same endpoint arriving email does, so it
+                lands here as an ordinary card and is reviewed the same way. */}
+            <Button variant="primary" size="md" icon={FilePlus} onClick={() => setNewOrderOpen(true)}>
+              Build New Quote/PO
             </Button>
           </div>
         </div>
@@ -189,9 +244,16 @@ export default function LiveInbox({ navigate }) {
           aria-label="Search requests"
         />
         {counts.skipped > 0 && (
-          <Badge tone="violet" className="nums">
-            {counts.skipped} skipped — quote on file
-          </Badge>
+          <Tooltip content="Gate skips are not in this inbox — nothing was predicted and the email never moved. They are recorded under History.">
+            <button
+              type="button"
+              onClick={() => navigate('history', { tab: 'skipped' })}
+              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-violet-200 bg-violet-50 px-2 text-[12px] font-medium text-violet-700 transition-colors hover:bg-violet-100"
+            >
+              <HistoryIcon className="size-3.5 shrink-0" strokeWidth={2} />
+              <span className="nums">{counts.skipped}</span> skipped — in History
+            </button>
+          </Tooltip>
         )}
 
         <div className="ml-auto flex items-center rounded-lg border border-ink-300 bg-white p-0.5 shadow-panel">
@@ -285,6 +347,7 @@ export default function LiveInbox({ navigate }) {
                   <Row
                     key={r.id}
                     row={r}
+                    status={displayStatus(r, drafts)}
                     onOpen={() => navigate('order', { id: r.id })}
                     onFlag={() => onFlag(r)}
                     onDelete={() => setDeleting(r)}
@@ -326,6 +389,13 @@ export default function LiveInbox({ navigate }) {
         </Card>
       </div>
 
+      <NewOrderModal
+        open={newOrderOpen}
+        busy={sending}
+        onClose={() => !sending && setNewOrderOpen(false)}
+        onSubmit={handleNewOrder}
+      />
+
       <ConfirmDelete
         job={deleting ? { ...deleting.raw, subject: deleting.subject } : null}
         open={!!deleting}
@@ -335,6 +405,8 @@ export default function LiveInbox({ navigate }) {
           setDeleteBusy(true)
           try {
             await dismiss(deleting.id)
+            clearDraft(deleting.id)
+            setDrafts(draftIds())
             toast?.success('Email deleted', { description: deleting.subject })
             setDeleting(null)
           } catch (e) {
@@ -352,12 +424,12 @@ export default function LiveInbox({ navigate }) {
 
 /* ------------------------------------------------------------------- row */
 
-function Row({ row: r, onOpen, onFlag, onDelete }) {
+function Row({ row: r, status, onOpen, onFlag, onDelete }) {
   return (
     <tr
       onClick={onOpen}
       className={cx(
-        'group h-14 cursor-pointer transition-colors [&>td]:border-b [&>td]:border-ink-200 last:[&>td]:border-b-0 hover:bg-ink-50',
+        'group min-h-14 cursor-pointer transition-colors [&>td]:border-b [&>td]:border-ink-200 last:[&>td]:border-b-0 hover:bg-ink-50',
         // The blue left edge of a flagged email, as on /inbox.
         r.flagged && 'bg-brand-50/40 shadow-[inset_2px_0_0_0] shadow-brand-600',
       )}
@@ -401,8 +473,12 @@ function Row({ row: r, onOpen, onFlag, onDelete }) {
         </div>
       </td>
 
-      {/* subject + tags */}
-      <td className="px-2 align-middle">
+      {/* subject, then its tags on their OWN line.
+          They used to sit inline after the subject, which pushed them past the
+          column edge and over the Status pill on any row with a long subject
+          (Sam). Stacked, each stays inside its own column whatever the subject
+          length. */}
+      <td className="px-2 py-2 align-middle">
         <div className="flex min-w-0 items-center gap-1.5">
           {r.attachmentCount > 0 && (
             <Tooltip content={plural(r.attachmentCount, 'attachment') + ' on this email'}>
@@ -413,56 +489,71 @@ function Row({ row: r, onOpen, onFlag, onDelete }) {
             </Tooltip>
           )}
           <span className="truncate text-[13px] text-ink-700">{r.subject}</span>
-          {r.potentialMatch ? (
-            <Tooltip
-              content={`May duplicate quote ${r.potentialMatch.quote_ref} — check before entering`}
-            >
-              <Badge tone="amber" className="shrink-0">
-                Potential PO quote match
-              </Badge>
-            </Tooltip>
-          ) : r.noQuoteFound ? (
-            <Tooltip content="Checked against open quotes — none match this PO">
-              <Badge tone="slate" className="shrink-0">
-                No quote found
-              </Badge>
-            </Tooltip>
-          ) : null}
-          {r.splitLabel && (
-            <Badge tone="blue" className="shrink-0">
-              {r.splitLabel}
-            </Badge>
-          )}
-          {r.partOf && (
-            <Tooltip
-              content={`This PO covered more than one quote and was split into ${r.partTotal} entries`}
-            >
-              <Badge tone="violet" className="shrink-0">
-                Part {r.partIndex}/{r.partTotal}
-              </Badge>
-            </Tooltip>
-          )}
-          {r.overturned && (
-            <Badge tone="violet" className="shrink-0">
-              gate overturned
-            </Badge>
-          )}
         </div>
-        {(r.status === 'error' || r.status === 'skipped' || r.splitOffCount > 0) && (
-          <div className="mt-0.5 truncate text-[11px] text-ink-400">
-            {r.status === 'error' && (r.error || 'failed')}
-            {r.status === 'skipped' &&
-              [r.matchedQuote && `quote ${r.matchedQuote}`, r.customerId && `cust ${r.customerId}`, r.confidence && `${r.confidence} confidence`]
-                .filter(Boolean)
-                .join(' · ')}
-            {r.splitOffCount > 0 && `${plural(r.splitOffCount, 'line')} split off`}
+
+        {(r.manual ||
+          r.potentialMatch ||
+          r.noQuoteFound ||
+          r.splitLabel ||
+          r.splitOffCount > 0 ||
+          r.partOf ||
+          r.overturned) && (
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-1">
+            {r.manual && (
+              <Tooltip content="Entered by hand through Build New Quote/PO, not received by email">
+                <Badge tone="blue" icon={PencilLine}>Typed in</Badge>
+              </Tooltip>
+            )}
+            {r.potentialMatch ? (
+              <Tooltip content={`May duplicate quote ${r.potentialMatch.quote_ref} — check before entering`}>
+                <Badge tone="amber">Potential PO quote match</Badge>
+              </Tooltip>
+            ) : r.noQuoteFound ? (
+              <Tooltip content="Checked against open quotes — none match this PO">
+                <Badge tone="slate">No quote found</Badge>
+              </Tooltip>
+            ) : null}
+            {/* Both sides of a split are tagged: the child because it is one,
+                the parent because lines of it now live elsewhere. */}
+            {(r.splitLabel || r.splitOffCount > 0) && (
+              <Tooltip
+                content={
+                  r.splitLabel
+                    ? 'Split off from another entry — these lines were moved here'
+                    : `${plural(r.splitOffCount, 'line')} moved to a separate entry`
+                }
+              >
+                <Badge tone="blue">Split Quote</Badge>
+              </Tooltip>
+            )}
+            {r.partOf && (
+              <Tooltip content={`This PO covered more than one quote and was split into ${r.partTotal} entries`}>
+                <Badge tone="violet">Part {r.partIndex}/{r.partTotal}</Badge>
+              </Tooltip>
+            )}
+            {r.overturned && <Badge tone="violet">gate overturned</Badge>}
           </div>
+        )}
+
+        {(r.splitLabel || r.splitOffCount > 0) && (
+          <div className="mt-1 truncate text-[11px] text-ink-400">
+            {r.splitLabel
+              ? 'split from another entry'
+              : `${plural(r.splitOffCount, 'line')} split off into a separate entry`}
+          </div>
+        )}
+
+        {r.status === 'error' && (
+          <div className="mt-1 truncate text-[11px] text-red-600">{r.error || 'failed'}</div>
         )}
       </td>
 
-      {/* status */}
-      <td className="px-2 align-middle">
-        <LiveStatusPill status={r.status} />
+      {/* status — a column, so a second pill stacks under the first rather
+          than widening the cell into its neighbour */}
+      <td className="px-2 py-2 align-middle">
+        <div className="flex flex-col items-start gap-1">
+          <LiveStatusPill status={status} />
+        </div>
       </td>
 
       {/* order number */}

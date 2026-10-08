@@ -43,6 +43,7 @@ export default function NewOrderModal({
   defaultText = '',
   defaultFiles = [],
   defaultError = false,
+  busy = false,
 }) {
   const [text, setText] = useState(defaultText)
   const [files, setFiles] = useState(defaultFiles)
@@ -83,6 +84,9 @@ export default function NewOrderModal({
     const incoming = Array.from(list ?? []).map((f) => ({
       name: f.name,
       size: prettySize(f.size),
+      // Carried so live mode can base64 and upload it. Mock mode reads only
+      // name and size, so this is inert there.
+      file: f,
     }))
     if (!incoming.length) return
     setFiles((prev) => {
@@ -93,15 +97,16 @@ export default function NewOrderModal({
   }
 
   const submit = () => {
+    if (busy) return
     if (!filled) {
       setError(true)
       areaRef.current?.focus()
       return
     }
+    // The caller clears the dialog once the order is away — in live mode that
+    // is a network round trip, and wiping the box first would lose the rep's
+    // typing if the request failed.
     onSubmit?.({ text, files })
-    setText('')
-    setFiles([])
-    setError(false)
   }
 
   const reset = () => {
@@ -296,9 +301,9 @@ export default function NewOrderModal({
                 {files.length}
               </span>
             )}
-            <Button onClick={onClose}>Cancel</Button>
-            <Button type="submit" variant="primary" disabled={!filled}>
-              Submit
+            <Button onClick={onClose} disabled={busy}>Cancel</Button>
+            <Button type="submit" variant="primary" disabled={!filled || busy}>
+              {busy ? 'Sending…' : 'Submit'}
             </Button>
           </div>
         </div>

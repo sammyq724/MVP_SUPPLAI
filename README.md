@@ -90,7 +90,36 @@ submit writes to a throwaway `review_queue2.csv`; it leaves `GITHUB_*` unset, wh
 Live: the inbox queue (polled every 10s), the order detail with the email and every attachment,
 line items parsed from the prediction, the pick between equivalent item IDs, the "mark wrong" X
 and per-line notes, and submit to the review queue. Delete, the blue flag, Retry and
-Predict-anyway are all wired to their real endpoints.
+Predict-anyway are all wired to their real endpoints. Plus, added 2026-10-08:
+
+**Build New Quote/PO — typed and attached orders.** Text, files or both go to `POST /api/jobs`,
+the same endpoint arriving email uses, so a hand-entered order becomes an ordinary inbox card:
+predicted in the background, reviewed and submitted exactly like an email rather than down a
+second parallel path. `email_type` is deliberately not sent, so the quote gate returns
+`not_checked` before making any call — a rep typing an order in is explicitly asking for a
+prediction, so having the gate decide it duplicates a quote and skip it would be absurd. The card
+is badged **Typed in**, and its review-queue rows are written `manual_entry` rather than being
+mislabelled `email_auto`.
+
+**In progress, and progress that is actually saved.** Reviewing a 16-line email is not one
+sitting. Picks, flags, notes and the two header fields are written to `localStorage` as the rep
+works (`src/live/useDraft.js`), the summary bar says *Saving your progress…* then *Progress
+saved*, and the queue shows the email as **In progress** — a sixth status that exists only in
+this browser, since it is `ready` plus a draft. Deliberately local: nothing here is a decision
+yet, and a half-finished review synced to `review_queue2.csv` would put rows in the retrain
+corpus that nobody ever submitted. Cleared on submit or delete, pruned when the email is gone.
+
+**Split Quote** (`POST /api/inbox/split`). Hidden behind a button until clicked — a checkbox
+column is noise on an ordinary order — then checkboxes, a count, and the *must leave at least one
+item* guardrail enforced in the page as well as on the server. Rows keep their original `#`
+through the move, so gaps are expected and a *"Row 12: Not lead free?"* follow-up still lines up.
+Both sides are tagged **Split Quote** and say which is which underneath.
+
+**Skipped lives in History, not the inbox.** A gate skip predicts nothing and moves nothing — the
+email stays in Gmail — so a card in this inbox claimed an action that had not happened. They are
+a record of a decision, and History gains a third tab for them, with the matched quote, the
+confidence and the adjudicator's reasoning on every row. A wrong skip is the expensive failure,
+so it is listed rather than hidden; opening one leads to **Predict anyway**.
 
 **As of 2026-10-07 this is HQPSPLBAI's landing page** — `/` and `/inbox` both serve it. The two
 pages it replaced are still there and are linked from the sidebar under *"Not in Solder yet"*,
@@ -98,8 +127,8 @@ because each still does something this does not: `/inbox-classic` is the only pl
 Quote and the Quotes tab, and `/predict` is the only way to predict an order that did not arrive
 by email.
 
-Not live, and labelled **Preview** in the sidebar: History, Settings, Find Item, the
-Build-New-Quote/PO flow and the Split Quote UI. Anything needing Prophet 21 — unit price,
+Not live: Settings (labelled **Preview** in the sidebar), Find Item, and History's Submitted and
+Deleted tabs (each labelled **Preview** on the tab itself — History's Skipped tab is real). Anything needing Prophet 21 — unit price,
 availability, UoM, totals, the item-master finder — reads `—` rather than a plausible-looking
 number, and the total line says *Pricing needs P21*.
 
@@ -115,6 +144,9 @@ All of it lives there, so mock mode is untouched and `npm run shots` cannot regr
 | `parse.js` | **the prediction-table parser** — a port of `inbox.html`'s |
 | `adapt.js` | job summary → queue row, status → pill, Make's envelope → readable email |
 | `useInbox.js` / `useJob.js` | polling and the per-email actions |
+| `useDraft.js` | in-progress review state in `localStorage`, and the In progress derivation |
+| `submitManual.js` | Build New Quote/PO — base64 the files, `POST /api/jobs` |
+| `LiveSkipped.jsx` | History's Skipped tab |
 | `LiveInbox.jsx`, `LiveOrderDetail.jsx`, `LiveSourcePane.jsx`, `LiveLineBlock.jsx`, `LiveBanners.jsx`, `LiveTopBar.jsx`, `LiveStatusPill.jsx`, `ConfirmDelete.jsx` | the screens |
 
 The five shared components that needed both behaviours — `QuoteToPanel`, `ShipToPanel`,

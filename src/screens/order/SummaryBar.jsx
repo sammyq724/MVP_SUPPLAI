@@ -1,6 +1,8 @@
 import React from 'react'
 import {
   AlertCircle,
+  Check,
+  CloudUpload,
   FileText,
   PackageCheck,
   CalendarClock,
@@ -97,6 +99,38 @@ export default function SummaryBar(props) {
 
 /* ------------------------------------------------------------------- live */
 
+/**
+ * "Is my work safe if I close this?" — the question the rep actually has
+ * halfway through a 16-line review. Until drafts existed the honest answer was
+ * no, and nothing on screen said so. See src/live/useDraft.js.
+ */
+function DraftIndicator({ status, savedAt }) {
+  if (status === 'idle') return null
+  if (status === 'saving') {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] text-ink-400">
+        <CloudUpload className="size-3 shrink-0 animate-pulse" strokeWidth={2} />
+        Saving your progress…
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600">
+      <Check className="size-3 shrink-0" strokeWidth={2.5} />
+      Progress saved{savedAt ? ` · ${relTime(savedAt)}` : ''}
+    </span>
+  )
+}
+
+function relTime(ts) {
+  const secs = Math.max(0, Math.round((Date.now() - ts) / 1000))
+  if (secs < 10) return 'just now'
+  if (secs < 60) return `${secs}s ago`
+  const mins = Math.round(secs / 60)
+  if (mins < 60) return `${mins}m ago`
+  return `${Math.round(mins / 60)}h ago`
+}
+
 function LiveSummaryBar({
   outstanding,
   lineCount,
@@ -107,6 +141,8 @@ function LiveSummaryBar({
   missingOrderRef,
   error,
   onSubmit,
+  draftStatus = 'idle',
+  draftSavedAt = null,
 }) {
   const missingFields = [missingCustomer && 'Customer #', missingOrderRef && 'Order / Quote #'].filter(
     Boolean,
@@ -175,11 +211,14 @@ function LiveSummaryBar({
                 content="Unit price, availability and totals come from Prophet 21. Until that connection exists this screen shows no numbers rather than placeholder ones."
               />
             </div>
-            <p className="mt-0.5 truncate text-[11px] text-ink-400">
-              {readOnly
-                ? 'Already submitted to the review queue.'
-                : `${lineCount} line${lineCount === 1 ? '' : 's'} · submitting writes them to review_queue2.csv`}
-            </p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <p className="truncate text-[11px] text-ink-400">
+                {readOnly
+                  ? 'Already submitted to the review queue.'
+                  : `${lineCount} line${lineCount === 1 ? '' : 's'} · submitting writes them to review_queue2.csv`}
+              </p>
+              {!readOnly && <DraftIndicator status={draftStatus} savedAt={draftSavedAt} />}
+            </div>
           </div>
 
           <Tooltip content={tip} side="top" width="w-60">

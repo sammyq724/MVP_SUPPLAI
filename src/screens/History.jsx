@@ -25,6 +25,8 @@ import {
   money,
 } from '../ui/primitives.jsx'
 import { useToast } from '../ui/toast.jsx'
+import { LIVE } from '../live/config.js'
+import LiveSkipped from '../live/LiveSkipped.jsx'
 import { DOC_TONES, deleted, submitted } from '../data/history.js'
 
 /**
@@ -43,6 +45,18 @@ const TABS = [
   { key: 'submitted', label: 'Submitted' },
   { key: 'deleted', label: 'Deleted' },
 ]
+
+/**
+ * In live mode History gains a third tab, Skipped: purchase orders the quote
+ * gate matched to a quote already on file (Sam, 2026-10-08). They are not in
+ * the inbox because a skip predicts nothing and moves nothing — the email stays
+ * in Gmail — so a card there claimed an action that had not happened. They are
+ * a record of a decision, which is what this screen is for.
+ *
+ * Submitted and Deleted are still mock fixtures and stay labelled Preview; the
+ * Skipped tab is real data from the backend.
+ */
+const LIVE_TABS = [...TABS, { key: 'skipped', label: 'Skipped', live: true }]
 
 const PICK_TICKET_HELP =
   'The warehouse pick list for this order. Quotes never have one — nothing is picked until a quote becomes an order.'
@@ -135,9 +149,15 @@ function Detail({ record }) {
 }
 
 export default function History({ params, navigate }) {
+  if (LIVE && (params ?? {}).tab === 'skipped') return <LiveSkipped navigate={navigate} />
+  return <MockHistory params={params} navigate={navigate} />
+}
+
+function MockHistory({ params, navigate }) {
   const p = params ?? {}
   const toast = useToast()
   const [tab, setTab] = useState(p.tab === 'deleted' ? 'deleted' : 'submitted')
+  const tabs = LIVE ? LIVE_TABS : TABS
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState({ key: 'date', dir: 'desc' })
   const [openId, setOpenId] = useState(p.open ?? null)
@@ -247,13 +267,16 @@ export default function History({ params, navigate }) {
       {/* ------------------------------------------------------ tabs + search */}
       <div className="flex shrink-0 flex-wrap items-center gap-3 px-5 pt-3 pb-2.5">
         <div className="flex items-center gap-1 rounded-lg border border-ink-200 bg-white p-0.5">
-          {TABS.map((t) => {
-            const count = t.key === 'deleted' ? deleted.length : submitted.length
+          {tabs.map((t) => {
+            const count = t.key === 'deleted' ? deleted.length : t.key === 'skipped' ? null : submitted.length
             return (
               <button
                 key={t.key}
                 type="button"
                 onClick={() => {
+                  // Skipped is a different screen entirely — real data, its own
+                  // layout — so it is a route, not a filter over these rows.
+                  if (t.key === 'skipped') return navigate('history', { tab: 'skipped' })
                   setTab(t.key)
                   setOpenId(null)
                 }}
@@ -266,7 +289,12 @@ export default function History({ params, navigate }) {
                 )}
               >
                 {t.label}
-                <span className="nums text-[11px] text-ink-400">{count}</span>
+                {count != null && <span className="nums text-[11px] text-ink-400">{count}</span>}
+                {LIVE && !t.live && (
+                  <span className="rounded-full bg-ink-100 px-1.5 text-[10px] font-semibold text-ink-500 ring-1 ring-ink-200 ring-inset">
+                    Preview
+                  </span>
+                )}
               </button>
             )
           })}

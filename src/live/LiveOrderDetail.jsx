@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2 } from 'lucide-react'
-import { Badge, Button, Card } from '../ui/primitives.jsx'
+import { Loader2, Scissors, X } from 'lucide-react'
+import { Badge, Button, Card, cx } from '../ui/primitives.jsx'
 import { useToast } from '../ui/toast.jsx'
 import QuoteToPanel from '../screens/order/QuoteToPanel.jsx'
 import ShipToPanel from '../screens/order/ShipToPanel.jsx'
@@ -11,12 +11,16 @@ import LiveLineBlock from './LiveLineBlock.jsx'
 import LiveBanners from './LiveBanners.jsx'
 import LiveTopBar from './LiveTopBar.jsx'
 import ConfirmDelete from './ConfirmDelete.jsx'
-import { AUTH_ERROR } from './api.js'
+import { AUTH_ERROR, api } from './api.js'
 import { useJob } from './useJob.js'
+import { useDraft } from './useDraft.js'
 import { linesForJob } from './parse.js'
 import { parseAddress } from './adapt.js'
 
 const blankLine = () => ({ chosen: null, chosenDesc: '', flagged: false, notes: '', manualId: '' })
+
+/** The page's half of the server's guardrail — see /api/inbox/split. */
+const MUST_LEAVE_ONE = 'Must leave at least one item in the original quote.'
 
 /**
  * Screen 3, live.
@@ -31,6 +35,7 @@ const blankLine = () => ({ chosen: null, chosenDesc: '', flagged: false, notes: 
 export default function LiveOrderDetail({ id, navigate }) {
   const toast = useToast()
   const { job, loading, error, reload, retry, predictAnyway, dismiss, setFlag, submit } = useJob(id)
+  const draft = useDraft(id)
 
   const [lineState, setLineState] = useState({})
   const [customerId, setCustomerId] = useState('')
@@ -41,7 +46,11 @@ export default function LiveOrderDetail({ id, navigate }) {
   const [busyAction, setBusyAction] = useState(false)
   const [confirming, setConfirming] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const prefilled = useRef(false)
+  const [splitMode, setSplitMode] = useState(false)
+  const [splitSel, setSplitSel] = useState(() => new Set())
+  const [splitting, setSplitting] = useState(false)
+  const [splitMsg, setSplitMsg] = useState('')
+  const seeded = useRef(false)
 
   const readOnly = job?.status === 'submitted'
 
@@ -50,42 +59,53 @@ export default function LiveOrderDetail({ id, navigate }) {
     [job],
   )
 
-  // Add state for rows that appear (a prediction landing on a poll) without
-  // touching rows the rep has already worked on.
+  /* ----------------------------------------------------------- draft seed */
+  // Seeded once, from the draft if there is one, otherwise from the job. A
+  // later poll must never overwrite work in progress.
+  useEffect(() => {
+    if (!job || !draft.loaded || seeded.current) return
+    seeded.current = true
+    const d = draft.draft
+    setCustomerId(d?.customerId ?? job.customer_id ?? '')
+    setOrderRef(d?.orderRef ?? job.order_ref ?? '')
+    if (d?.lineState) setLineState(d.lineState)
+  }, [job, draft.loaded, draft.draft])
+
+  // New rows (a prediction landing on a poll) get blank state; rows the rep has
+  // already worked on are left exactly as they are.
   useEffect(() => {
     if (!lines.length) return
     setLineState((prev) => {
       let changed = false
       const next = { ...prev }
       for (const l of lines) {
-        if (!next[l.n]) {
-          next[l.n] = blankLine()
-          changed = true
-        }
+        if (!next[l.n]) { next[l.n] = blankLine(); changed = true }
       }
       return changed ? next : prev
     })
   }, [lines])
 
-  // Prefill once. A later poll must not overwrite a number the rep has typed.
+  /* ----------------------------------------------------------- draft save */
   useEffect(() => {
-    if (!job || prefilled.current) return
-    prefilled.current = true
-    if (job.customer_id) setCustomerId(job.customer_id)
-    if (job.order_ref) setOrderRef(job.order_ref)
-  }, [job])
+    if (!seeded.current || readOnly || !job) return
+    // Only rows still on this entry: a row moved away by a split has its state
+    // on the child now, and keeping it here would hold the draft "in progress"
+    // forever over lines that are no longer on the page.
+    const live = new Set(lines.map((l) => l.n))
+    const pruned = Object.fromEntries(Object.entries(lineState).filter(([n]) => live.has(Number(n))))
+    draft.save({ lineState: pruned, customerId, orderRef })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineState, customerId, orderRef, readOnly, lines])
 
   const onLineChange = useCallback((n, next) => {
     setLineState((prev) => ({ ...prev, [n]: next }))
   }, [])
 
+  /* ------------------------------------------------------------- submit */
   /**
    * The submission batch — inbox.html's activePredictions(), reproduced key for
    * key. The server reads these straight into review_queue2.csv rows, so the
    * shape is a contract, not a convenience.
-   *
-   * Only lines still on THIS entry are included: a row split away belongs to
-   * its own entry and is submitted from there (parse.js already drops them).
    */
   const predictions = useMemo(
     () =>
@@ -96,18 +116,11 @@ export default function LiveOrderDetail({ id, navigate }) {
         let item_description
         if (c.kind === 'choice') {
           predicted_item_id = s.chosen || ''
-          // inbox.html falls back to the id when a choice carried no pairable
-          // description, so the column is never blank.
           item_description = s.chosenDesc || s.chosen || ''
         } else if (c.kind === 'none') {
-          // The rep may know the answer the model did not. Typing one replaces
-          // NO_PREDICTION; leaving it blank submits NO_PREDICTION, which is a
-          // real result and deliberately does not block submit.
           predicted_item_id = s.manualId.trim() || c.submitId
           item_description = c.submitDesc
         } else {
-          // Single, make-up (" & " kept joined, exactly as /inbox submits it)
-          // and FAB all submit the cell as the model wrote it.
           predicted_item_id = c.submitId
           item_description = c.submitDesc
         }
@@ -127,9 +140,7 @@ export default function LiveOrderDetail({ id, navigate }) {
     [lines, lineState, job],
   )
 
-  const outstanding = lines.filter(
-    (l) => l.classified.kind === 'choice' && !(lineState[l.n]?.chosen),
-  ).length
+  const outstanding = lines.filter((l) => l.classified.kind === 'choice' && !lineState[l.n]?.chosen).length
   const missingCustomer = !customerId.trim()
   const missingOrderRef = !orderRef.trim()
   const canSubmit = !readOnly && lines.length > 0 && !outstanding && !missingCustomer && !missingOrderRef
@@ -147,6 +158,9 @@ export default function LiveOrderDetail({ id, navigate }) {
           submission_type: submissionType,
           predictions,
         })
+        // The real record is on the server now; a kept draft could only ever be
+        // stale, and would hold the email in the In Progress tab forever.
+        draft.clear()
         toast?.success(
           `Saved ${data.count} prediction(s) for ${submissionType === 'quote' ? 'quote' : 'order'} ${orderRef.trim()}`,
           { description: 'Written to the review queue' },
@@ -154,36 +168,76 @@ export default function LiveOrderDetail({ id, navigate }) {
         await reload()
       } catch (e) {
         if (e.message === AUTH_ERROR) return
-        // Each of these means something different to the rep, and none of them
-        // may clear their work — the line state stays exactly as it is.
-        if (e.status === 409) {
-          // The server's own text already names the order it was submitted as,
-          // which is more use than a generic "already submitted".
-          setSubmitError(e.message)
-          await reload()
-        } else if (e.status === 502) {
-          setSubmitError(
-            'Saved locally but could not push — try again in a moment. Nothing you have entered has been lost.',
-          )
-        } else {
-          setSubmitError(e.message)
-        }
+        // Each means something different, and none of them may clear the rep's
+        // work — the draft is untouched on every one of these paths.
+        if (e.status === 409) { setSubmitError(e.message); await reload() }
+        else if (e.status === 502) {
+          setSubmitError('Saved locally but could not push — try again in a moment. Nothing you have entered has been lost.')
+        } else setSubmitError(e.message)
       } finally {
         setSubmitting(false)
       }
     },
-    [canSubmit, submitting, submit, orderRef, customerId, predictions, toast, reload],
+    [canSubmit, submitting, submit, orderRef, customerId, predictions, toast, reload, draft],
   )
 
+  /* -------------------------------------------------------- split quote */
+  const canSplit = job?.status === 'ready' && lines.length > 1
+  const remaining = lines.length - splitSel.size
+  const splitBlocked = splitSel.size > 0 && remaining < 1
+
+  const toggleSplit = useCallback((n, on) => {
+    setSplitMsg('')
+    setSplitSel((prev) => {
+      const next = new Set(prev)
+      if (on) next.add(n)
+      else next.delete(n)
+      return next
+    })
+  }, [])
+
+  const leaveSplitMode = useCallback(() => {
+    setSplitMode(false)
+    setSplitSel(new Set())
+    setSplitMsg('')
+  }, [])
+
+  const doSplit = useCallback(async () => {
+    if (!splitSel.size || splitting) return
+    if (splitBlocked) { setSplitMsg(MUST_LEAVE_ONE); return }
+    setSplitting(true)
+    setSplitMsg('')
+    try {
+      // What the rep already did to the moving rows travels with them: a red X,
+      // a note or a two-choice pick is not lost in the move.
+      const row_state = {}
+      for (const n of splitSel) {
+        const s = lineState[n] || blankLine()
+        row_state[n] = { flagged_incorrect: !!s.flagged, notes: s.notes || '', chosen_id: s.chosen || '' }
+      }
+      const data = await api('/api/inbox/split', {
+        id,
+        row_numbers: [...splitSel].sort((a, b) => a - b),
+        row_state,
+      })
+      leaveSplitMode()
+      toast?.success(`Split off ${data.moved} line(s) into a new entry`, {
+        description: `${data.remaining} line(s) stay on this one`,
+      })
+      await reload()
+    } catch (e) {
+      if (e.message !== AUTH_ERROR) setSplitMsg(e.message)
+    } finally {
+      setSplitting(false)
+    }
+  }, [splitSel, splitting, splitBlocked, lineState, id, toast, reload, leaveSplitMode])
+
+  /* --------------------------------------------------------------- misc */
   const guard = async (fn, label) => {
     setBusyAction(true)
-    try {
-      await fn()
-    } catch (e) {
+    try { await fn() } catch (e) {
       if (e.message !== AUTH_ERROR) toast?.warning(label, { description: e.message })
-    } finally {
-      setBusyAction(false)
-    }
+    } finally { setBusyAction(false) }
   }
 
   if (loading && !job) {
@@ -203,11 +257,13 @@ export default function LiveOrderDetail({ id, navigate }) {
   }
 
   const who = parseAddress(job.from)
+  const inProgress = !readOnly && draft.status !== 'idle'
 
   return (
     <>
       <LiveTopBar
         job={job}
+        inProgress={inProgress}
         onBack={() => navigate('inbox')}
         onFlag={(next) => guard(() => setFlag(next), 'Could not flag this email')}
         onDelete={() => setConfirming(true)}
@@ -248,10 +304,8 @@ export default function LiveOrderDetail({ id, navigate }) {
               />
             </div>
 
-            {/* ------------------------------------------------ notes box */}
-            {/* Trailing text that is not aimed at a specific row: the model's
-                own reasoning notes, and anything it wanted to say about the
-                order as a whole. Row-specific follow-ups sit on their row. */}
+            {/* Trailing text not aimed at a specific row: the model's own
+                reasoning notes. Row-specific follow-ups sit on their row. */}
             {notes.length > 0 && (
               <Card className="mt-4 p-3">
                 <p className="text-[11px] font-semibold tracking-[0.04em] text-ink-500 uppercase">
@@ -259,9 +313,7 @@ export default function LiveOrderDetail({ id, navigate }) {
                 </p>
                 <div className="mt-1.5 space-y-1">
                   {notes.map((t, i) => (
-                    <p key={i} className="text-[12px] leading-5 text-ink-600">
-                      {t}
-                    </p>
+                    <p key={i} className="text-[12px] leading-5 text-ink-600">{t}</p>
                   ))}
                 </div>
               </Card>
@@ -271,24 +323,54 @@ export default function LiveOrderDetail({ id, navigate }) {
             <section aria-label="Products" className="mt-4">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-[15px] font-semibold text-ink-900">Products</h2>
-                <Badge tone="slate" className="nums">
-                  {lines.length}
-                </Badge>
+                <Badge tone="slate" className="nums">{lines.length}</Badge>
+
+                {canSplit && !readOnly && !splitMode && (
+                  <Button size="sm" icon={Scissors} onClick={() => setSplitMode(true)}>
+                    Split Quote
+                  </Button>
+                )}
+
                 {lines.length > 0 && (
                   <span className="ml-auto text-[11px] text-ink-500">
                     <span className="nums">{lines.length - outstanding}</span> matched ·{' '}
-                    <span
-                      className={
-                        outstanding === 0
-                          ? 'nums font-medium text-emerald-600'
-                          : 'nums font-medium text-amber-600'
-                      }
-                    >
+                    <span className={outstanding === 0 ? 'nums font-medium text-emerald-600' : 'nums font-medium text-amber-600'}>
                       {outstanding} outstanding
                     </span>
                   </span>
                 )}
               </div>
+
+              {/* ------------------------------------------------ split bar */}
+              {/* Just a button until clicked: the checkbox column is noise on an
+                  ordinary order (Sam). Clicking it reveals the checkboxes, the
+                  split button and Cancel. */}
+              {splitMode && (
+                <div className="mt-2.5 flex flex-wrap items-center gap-2.5 rounded-lg border border-brand-300 bg-brand-50 px-3 py-2">
+                  <span className="text-[12px] font-medium text-brand-900">
+                    Tick the lines that belong to a separate job.
+                  </span>
+                  <span className="nums text-[12px] text-brand-700">
+                    {splitSel.size} selected · {remaining} would stay
+                  </span>
+                  <div className="ml-auto flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={doSplit}
+                      disabled={!splitSel.size || splitBlocked || splitting}
+                    >
+                      {splitting ? 'Splitting…' : `Split off ${splitSel.size} line${splitSel.size === 1 ? '' : 's'}`}
+                    </Button>
+                    <Button size="sm" onClick={leaveSplitMode} disabled={splitting}>Cancel</Button>
+                  </div>
+                  {(splitBlocked || splitMsg) && (
+                    <p className="w-full text-[12px] font-medium text-red-700">
+                      {splitMsg || MUST_LEAVE_ONE}
+                    </p>
+                  )}
+                </div>
+              )}
 
               {lines.map((l, i) => (
                 <React.Fragment key={l.n}>
@@ -304,6 +386,9 @@ export default function LiveOrderDetail({ id, navigate }) {
                     state={lineState[l.n] || blankLine()}
                     onChange={onLineChange}
                     readOnly={readOnly}
+                    splitMode={splitMode}
+                    splitChecked={splitSel.has(l.n)}
+                    onSplitToggle={toggleSplit}
                   />
                 </React.Fragment>
               ))}
@@ -334,6 +419,8 @@ export default function LiveOrderDetail({ id, navigate }) {
             missingOrderRef={missingOrderRef}
             error={submitError}
             onSubmit={doSubmit}
+            draftStatus={draft.status}
+            draftSavedAt={draft.savedAt}
           />
         </section>
       </div>
@@ -347,6 +434,7 @@ export default function LiveOrderDetail({ id, navigate }) {
           setDeleting(true)
           try {
             await dismiss()
+            draft.clear()
             navigate('inbox')
           } catch (e) {
             if (e.message !== AUTH_ERROR) toast?.warning('Could not delete this email', { description: e.message })

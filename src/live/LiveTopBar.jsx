@@ -1,5 +1,5 @@
 import React from 'react'
-import { ArrowLeft, ChevronRight, Flag, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Flag, PencilLine, Trash2 } from 'lucide-react'
 import { Badge, IconButton, Tooltip, cx } from '../ui/primitives.jsx'
 import LiveStatusPill from './LiveStatusPill.jsx'
 
@@ -15,7 +15,7 @@ import LiveStatusPill from './LiveStatusPill.jsx'
  * prediction ROW, which means "this line is wrong" and does travel to the
  * review queue.
  */
-export default function LiveTopBar({ job, onBack, onFlag, onDelete }) {
+export default function LiveTopBar({ job, inProgress = false, onBack, onFlag, onDelete }) {
   const canDelete = job.status !== 'submitted'
 
   return (
@@ -36,27 +36,29 @@ export default function LiveTopBar({ job, onBack, onFlag, onDelete }) {
         </h1>
       </nav>
 
-      <span className="shrink-0">
+      {/* Wraps rather than sitting on one line: four tags beside a truncating
+          breadcrumb used to collide at narrow widths. */}
+      <div className="flex min-w-0 shrink flex-wrap items-center gap-1.5">
         <LiveStatusPill status={job.status} />
-      </span>
-
-      {job.overturned && (
-        <Badge tone="violet" className="shrink-0">
-          gate overturned
-        </Badge>
-      )}
-      {job.split_label && (
-        <Badge tone="blue" className="shrink-0">
-          {job.split_label}
-        </Badge>
-      )}
-      {job.split_off_rows?.length > 0 && (
-        <span className="shrink-0 text-[11px] text-ink-400">
-          {job.split_off_rows.length} line{job.split_off_rows.length === 1 ? '' : 's'} split off into{' '}
-          {job.split_children?.length || 0} other entr
-          {(job.split_children?.length || 0) === 1 ? 'y' : 'ies'}
-        </span>
-      )}
+        {inProgress && (
+          <Badge tone="amber" icon={PencilLine}>
+            In progress
+          </Badge>
+        )}
+        {job.overturned && <Badge tone="violet">gate overturned</Badge>}
+        {/* Both sides of a split carry the tag: the child because it IS one,
+            the parent because lines of it now live somewhere else. */}
+        {(job.split_label || job.split_off_rows?.length > 0) && (
+          <Badge tone="blue">Split Quote</Badge>
+        )}
+        {job.split_off_rows?.length > 0 && (
+          <span className="text-[11px] whitespace-nowrap text-ink-400">
+            {job.split_off_rows.length} line{job.split_off_rows.length === 1 ? '' : 's'} split off into{' '}
+            {job.split_children?.length || 0} other entr
+            {(job.split_children?.length || 0) === 1 ? 'y' : 'ies'}
+          </span>
+        )}
+      </div>
 
       <div className="ml-auto flex shrink-0 items-center gap-1.5">
         <Tooltip content={job.flagged ? 'Remove the blue flag' : 'Flag this email'}>

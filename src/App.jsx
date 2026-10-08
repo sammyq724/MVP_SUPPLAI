@@ -82,7 +82,7 @@ function Shell() {
         onNavigate={(k) => navigate(k)}
         collapsed={collapsed}
         onToggle={() => setCollapsed((c) => !c)}
-        preview={LIVE ? ['history', 'settings'] : []}
+        preview={LIVE ? ['settings'] : []}
         inboxBadge={LIVE ? null : '5'}
         classic={LIVE ? CLASSIC : []}
       />

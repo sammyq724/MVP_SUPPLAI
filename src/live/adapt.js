@@ -4,6 +4,13 @@
  * rather than scattered through JSX.
  */
 
+/**
+ * `source` on a job created from the Build New Quote/PO box. The server stores
+ * whatever it is given; this is the one value the UI writes, and it is what
+ * tells a typed order apart from an email on the card and in review_queue2.csv.
+ */
+export const MANUAL_SOURCE = 'manual_app'
+
 /* --------------------------------------------------------------- statuses */
 
 /**
@@ -37,8 +44,21 @@ export const STATUS = {
   skipped: {
     label: 'Skipped — quote match',
     tone: 'violet',
+    // Deliberately NOT in the inbox at all (Sam, 2026-10-08). A gate skip never
+    // left the salesman's Gmail inbox — nothing was predicted and nothing was
+    // moved — so a card in THIS inbox claimed an action that had not happened.
+    // It is a record of a decision, so it lives in History's Skipped tab.
     tab: null,
-    help: 'Not predicted: the quote gate judged this a release against a quote we already priced. Convert that quote in the ERP — or open it and predict anyway if the gate got it wrong.',
+    inInbox: false,
+    help: 'Not predicted: the quote gate judged this a release against a quote we already priced. Convert that quote in the ERP — or open it from History and predict anyway if the gate got it wrong.',
+  },
+  // Derived, not a server status: a `ready` email with unfinished work saved
+  // against it in this browser. See src/live/useDraft.js.
+  in_progress: {
+    label: 'In progress',
+    tone: 'amber',
+    tab: 'In Progress',
+    help: 'You have started reviewing this one and your progress is saved in this browser. Open it to carry on where you left off.',
   },
   submitted: {
     label: 'Submitted',
@@ -49,6 +69,17 @@ export const STATUS = {
 }
 
 export const statusMeta = (s) => STATUS[s] ?? { label: s || 'unknown', tone: 'slate', tab: null }
+
+/** Does this status belong in the inbox at all? Only `skipped` does not. */
+export const showsInInbox = (s) => statusMeta(s).inInbox !== false
+
+/**
+ * What the queue should SAY a row is. The server knows five statuses; the
+ * sixth, In progress, exists only in this browser — it is `ready` plus a
+ * saved draft.
+ */
+export const displayStatus = (row, draftIds) =>
+  row.status === 'ready' && draftIds?.has(row.id) ? 'in_progress' : row.status
 
 /* ------------------------------------------------------------------ dates */
 
@@ -117,6 +148,8 @@ export function summaryToRow(job) {
     partIndex: job.part_index ?? null,
     partTotal: job.part_total ?? null,
     overturned: !!job.overturned,
+    // Typed in through Build New Quote/PO rather than arriving by email.
+    manual: job.source === MANUAL_SOURCE,
     matchedQuote: job.matched_quote || '',
     customerId: job.customer_id || '',
     confidence: job.confidence || '',
